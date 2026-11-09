@@ -168,7 +168,7 @@ jobs:
     - name: Compare Accuracy With Current Master
       shell: bash
       env:
-        RELEASE_URL: https://github.com/guio13233/OpenRBX/releases/download/continuous
+        RELEASE_URL: https://github.com/guio13233/OpenRBX-Modifications/releases/download/continuous
       run: |
         curl -fLSs -o progress-old.json $RELEASE_URL/WEBSERVICEPROGRESS.json || echo "" >progress-old.json
 
@@ -249,7 +249,7 @@ jobs:
     name: Upload artifacts
     needs: [verify]
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'guio13233/OpenRBX' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'guio13233/OpenRBX-Modifications' }}
     permissions:
       contents: write
       pages: write
