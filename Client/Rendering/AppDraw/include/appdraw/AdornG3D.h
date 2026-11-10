@@ -70,8 +70,6 @@ public:
 		const G3D::Color4& color
 	);
 
-	virtual void drawFlag(const G3D::Vector3& position, const G3D::Vector3& offset, const G3D::Color4& color, float scale);
-
 	// SYNTHETIC: WEBSERVICE 0x100062e0
 	// SYNTHETIC: ROBLOX 0x004619b0
 	// RBX::AdornG3D::`scalar deleting destructor'
