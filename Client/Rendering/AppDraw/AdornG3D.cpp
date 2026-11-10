@@ -214,7 +214,7 @@ void AdornG3D::drawFlag(const G3D::Vector3& position, const G3D::Vector3& offset
 	renderDevice->setShadeMode(G3D::RenderDevice::SHADE_SMOOTH);
 	setColor(color);
 	renderDevice->beginPrimitive(G3D::RenderDevice::TRIANGLES);
-		renderDevice->setNormal(G3D::Vector3(0, 0, 0));
+		renderDevice->setNormal(G3D::Vector3(1.0, 0, 0));
 		renderDevice->sendVertex(flagAttachment);
 		renderDevice->sendVertex(flagTip);
 		renderDevice->sendVertex(poleTop);
