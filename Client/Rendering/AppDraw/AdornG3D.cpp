@@ -203,6 +203,29 @@ G3D::Vector2 AdornG3D::drawFont2D(
 	);
 }
 
+void AdornG3D::drawFlag(const G3D::Vector3& position, const G3D::Vector3& offset, const G3D::Color4& color, float scale) {
+	const G3D::Vector3 poleTop = position + offset;
+	const G3D::Vector3 poleDir = offset.unit();
+	const G3D::Vector3 flagAttachment = poleTop - poleDir * 0.6 * scale;
+	const G3D::Vector3 flagTip = (poleTop + flagAttachment) * 0.5 + G3D::Vector3(0, 0, 1.0f) * scale;
+
+	renderDevice->pushState();
+	renderDevice->setShadeMode(G3D::RenderDevice::SHADE_SMOOTH);
+	setColor(color);
+	renderDevice->beginPrimitive(G3D::RenderDevice::TRIANGLES);
+		renderDevice->setNormal(G3D::Vector3(0, 0, 0));
+		renderDevice->sendVertex(flagAttachment);
+		renderDevice->sendVertex(flagTip);
+		renderDevice->sendVertex(poleTop);
+		renderDevice->setNormal(G3D::Vector3(-1.0, 0, 0));
+		renderDevice->sendVertex(flagAttachment);
+		renderDevice->sendVertex(poleTop);
+		renderDevice->sendVertex(flagTip);
+	renderDevice->endIndexedPrimitives();
+	lineSegment(G3D::LineSegment::fromTwoPoints(position, poleTop), color, 1.0f);
+}
+
+
 // FUNCTION: WEBSERVICE 0x10031460
 // FUNCTION: ROBLOX 0x00670100
 G3D::ReferenceCountedPointer<TextureProxyBase> AdornG3D::createTextureProxy(const std::string& filename)

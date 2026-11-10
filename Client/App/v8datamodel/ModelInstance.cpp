@@ -247,6 +247,20 @@ bool ModelInstance::hitTest(const G3D::Ray& worldRay, G3D::Vector3& worldHitPoin
 	return false;
 }
 
+void PVInstance::renderControllerFlag(Adorn* adorn)
+{
+	const Controller::ControllerType type = getTopPVController()->getControllerType();
+	if (type == Controller::NO_CONTROLLER || type == Controller::PLAYER_CONTROLLER) {
+		return;
+	}
+	if (!getShowControllerFlag()) {
+		return;
+	}
+
+	adorn->setObjectToWorldMatrix(getLocation());
+	adorn->drawFlag(G3D::Vector3::zero(), G3D::Vector3(0, FlagHeight.getValue(), 0), Controller::controllerTypeToColor(type), 3.0f);
+}
+
 // FUNCTION: WEBSERVICE 0x1005add0
 // FUNCTION: ROBLOX 0x00565b50
 bool ModelInstance::shouldRender3dAdorn() const
@@ -264,6 +278,10 @@ void ModelInstance::render3dAdorn(Adorn* adorn)
 
 	if (showModelCoord) {
 		renderCoordinateFrame(adorn);
+	}
+
+	if (IsControllable.getValue(this)) {
+		renderControllerFlag(adorn);
 	}
 }
 

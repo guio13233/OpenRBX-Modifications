@@ -208,6 +208,11 @@ void AdornRbxGfx::ray(const G3D::Ray& ray, const G3D::Color4& color, float scale
 	STUB(0x66da00);
 }
 
+void AdornRbxGfx::drawFlag(const G3D::Vector3& position, const G3D::Vector3& offset, const G3D::Color4& color, float scale)
+{
+	return;
+}
+
 // STUB: ROBLOX 0x0066df30
 AdornRbxGfx::~AdornRbxGfx()
 {
