@@ -1,5 +1,7 @@
 #include "appdraw/RbxSceneManager.h"
 
+#include "appdraw/RbxEntity.h"
+
 #include <OgreAnimation.h>
 #include <OgreAnimationState.h>
 #include <OgreAnimationTrack.h>
@@ -44,9 +46,13 @@
 #include <OgreTechnique.h>
 #include <OgreTextureManager.h>
 #include <OgreTextureUnitState.h>
+#include <OgreTimer.h>
 #include <OgreViewport.h>
 
 namespace Ogre {
+
+// GLOBAL: ROBLOX 0x00961438
+bool g_unk0x00961438;
 
 // GLOBAL: ROBLOX 0x0096143c
 const String RbxSceneManagerFactory::FACTORY_TYPE_NAME = "RbxSceneManager";
@@ -1882,7 +1888,7 @@ void RbxSceneManager::removeShadowListener(ShadowListener* delListener)
 	}
 }
 
-// STUB: ROBLOX 0x0068db80
+// FUNCTION: ROBLOX 0x0068db80
 void RbxSceneManager::renderShadowVolumeObjects(
 	ShadowCaster::ShadowRenderableListIterator iShadowRenderables,
 	Pass* pass,
@@ -1897,40 +1903,37 @@ void RbxSceneManager::renderShadowVolumeObjects(
 	while (iShadowRenderables.hasMoreElements()) {
 		ShadowRenderable* sr = iShadowRenderables.getNext();
 
-		if (sr->isVisible()) {
+		renderSingleObject(sr, pass, false, manualLightList);
 
-			renderSingleObject(sr, pass, false, manualLightList);
+		if (sr->isLightCapSeparate() && (flags & SRF_INCLUDE_LIGHT_CAP)) {
+			ShadowRenderable* lightCap = sr->getLightCapRenderable();
+			assert(lightCap && "Shadow renderable is missing a separate light cap renderable!");
 
-			if (sr->isLightCapSeparate() && (flags & SRF_INCLUDE_LIGHT_CAP)) {
-				ShadowRenderable* lightCap = sr->getLightCapRenderable();
-				assert(lightCap && "Shadow renderable is missing a separate light cap renderable!");
+			if (twosided) {
 
-				if (twosided) {
+				mDestRenderSystem->_setCullingMode(CULL_ANTICLOCKWISE);
 
-					mDestRenderSystem->_setCullingMode(CULL_ANTICLOCKWISE);
+				renderSingleObject(lightCap, pass, false, manualLightList);
 
-					renderSingleObject(lightCap, pass, false, manualLightList);
+				mDestRenderSystem->_setCullingMode(CULL_CLOCKWISE);
 
-					mDestRenderSystem->_setCullingMode(CULL_CLOCKWISE);
+				mDestRenderSystem->_setDepthBufferFunction(CMPF_ALWAYS_FAIL);
+				renderSingleObject(lightCap, pass, false, manualLightList);
 
-					mDestRenderSystem->_setDepthBufferFunction(CMPF_ALWAYS_FAIL);
-					renderSingleObject(lightCap, pass, false, manualLightList);
+				mDestRenderSystem->_setDepthBufferFunction(CMPF_LESS);
 
-					mDestRenderSystem->_setDepthBufferFunction(CMPF_LESS);
+				mDestRenderSystem->_setCullingMode(CULL_NONE);
+			}
+			else if ((secondpass || zfail) && !(secondpass && zfail)) {
 
-					mDestRenderSystem->_setCullingMode(CULL_NONE);
-				}
-				else if ((secondpass || zfail) && !(secondpass && zfail)) {
+				renderSingleObject(lightCap, pass, false, manualLightList);
+			}
+			else {
 
-					renderSingleObject(lightCap, pass, false, manualLightList);
-				}
-				else {
+				mDestRenderSystem->_setDepthBufferFunction(CMPF_ALWAYS_FAIL);
+				renderSingleObject(lightCap, pass, false, manualLightList);
 
-					mDestRenderSystem->_setDepthBufferFunction(CMPF_ALWAYS_FAIL);
-					renderSingleObject(lightCap, pass, false, manualLightList);
-
-					mDestRenderSystem->_setDepthBufferFunction(CMPF_LESS);
-				}
+				mDestRenderSystem->_setDepthBufferFunction(CMPF_LESS);
 			}
 		}
 	}
@@ -2332,14 +2335,15 @@ const Pass* RbxSceneManager::_setPass(const Pass* pass, bool evenIfSuppressed, b
 	return pass;
 }
 
-// STUB: ROBLOX 0x006901e0
+// FUNCTION: ROBLOX 0x006901e0
 void RbxSceneManager::_renderScene(Camera* camera, Viewport* vp, bool includeOverlays)
 {
+	g_unk0x00961438 = false;
+	m_unk0x8a64 = true;
+	m_unk0x8a65 = false;
 	Root::getSingleton()._setCurrentSceneManager(this);
 	mActiveQueuedRenderableVisitor->targetSceneMgr = this;
 	mAutoParamDataSource.setCurrentSceneManager(this);
-
-	mCurrentViewport = vp;
 
 	if (isShadowTechniqueInUse()) {
 
@@ -2364,11 +2368,14 @@ void RbxSceneManager::_renderScene(Camera* camera, Viewport* vp, bool includeOve
 		mLastFrameNumber = thisFrameNumber;
 	}
 
+	Timer timer;
 	{
 
 		OGRE_LOCK_MUTEX(sceneGraphMutex)
 
+		timer.reset();
 		_updateSceneGraph(camera);
+		timer.getMicroseconds();
 
 		AutoTrackingSceneNodes::iterator atsni, atsniend;
 		atsniend = mAutoTrackingSceneNodes.end();
@@ -2429,7 +2436,9 @@ void RbxSceneManager::_renderScene(Camera* camera, Viewport* vp, bool includeOve
 			}
 		}
 
+		timer.reset();
 		prepareRenderQueue();
+		timer.getMicroseconds();
 
 		if (mFindVisibleObjects) {
 
@@ -2474,7 +2483,9 @@ void RbxSceneManager::_renderScene(Camera* camera, Viewport* vp, bool includeOve
 	mDestRenderSystem->_setProjectionMatrix(mCameraInProgress->getProjectionMatrixRS());
 	mDestRenderSystem->_setViewMatrix(mCameraInProgress->getViewMatrix(true));
 
+	timer.reset();
 	_renderVisibleObjects();
+	timer.getMicroseconds();
 
 	mDestRenderSystem->_endFrame();
 
@@ -2778,65 +2789,26 @@ void RbxSceneManager::_notifyAutotrackingSceneNode(SceneNode* node, bool autoTra
 	}
 }
 
-// STUB: ROBLOX 0x00691680
+// FUNCTION: ROBLOX 0x00691680
 const SceneManager::ShadowCasterList& RbxSceneManager::findShadowCastersForLight(
 	const Light* light, const Camera* camera
 )
 {
+	if (g_unk0x00961438 == true) {
+		throw std::exception("findShadowCastersForLight call repeated");
+	}
+	g_unk0x00961438 = true;
+
 	mShadowCasterList.clear();
 
-	if (light->getType() == Light::LT_DIRECTIONAL) {
-
-		AxisAlignedBox aabb;
-		const Vector3* corners = camera->getWorldSpaceCorners();
-		Vector3 min, max;
-		Vector3 extrude = light->getDerivedDirection() * -mShadowDirLightExtrudeDist;
-
-		min = max = corners[0];
-		min.makeFloor(corners[0] + extrude);
-		max.makeCeil(corners[0] + extrude);
-		for (size_t c = 1; c < 8; ++c) {
-			min.makeFloor(corners[c]);
-			max.makeCeil(corners[c]);
-			min.makeFloor(corners[c] + extrude);
-			max.makeCeil(corners[c] + extrude);
-		}
-		aabb.setExtents(min, max);
-
-		if (!mShadowCasterAABBQuery) {
-			mShadowCasterAABBQuery = createAABBQuery(aabb);
-		}
-		else {
-			mShadowCasterAABBQuery->setBox(aabb);
-		}
-
-		mShadowCasterQueryListener->prepare(
-			false, &(light->_getFrustumClipVolumes(camera)), light, camera, &mShadowCasterList, mShadowFarDistSquared
-		);
-		mShadowCasterAABBQuery->execute(mShadowCasterQueryListener);
+	SceneNode* root = dynamic_cast<SceneNode*>(mSceneRoot->getChild("rbxroot"));
+	if (!root) {
+		LogManager::getSingleton().logMessage("RBX Missing or duplicate world node");
 	}
 	else {
-		Sphere s(light->getDerivedPosition(), light->getAttenuationRange());
-
-		if (camera->isVisible(s)) {
-			if (!mShadowCasterSphereQuery) {
-				mShadowCasterSphereQuery = createSphereQuery(s);
-			}
-			else {
-				mShadowCasterSphereQuery->setSphere(s);
-			}
-
-			bool lightInFrustum = camera->isVisible(light->getDerivedPosition());
-			const PlaneBoundedVolumeList* volList = 0;
-			if (!lightInFrustum) {
-
-				volList = &(light->_getFrustumClipVolumes(camera));
-			}
-
-			mShadowCasterQueryListener->prepare(
-				lightInFrustum, volList, light, camera, &mShadowCasterList, mShadowFarDistSquared
-			);
-			mShadowCasterSphereQuery->execute(mShadowCasterQueryListener);
+		if (root->getAttachedObjectIterator().hasMoreElements()) {
+			RbxEntity* entity = dynamic_cast<RbxEntity*>(root->getAttachedObject((unsigned short) 0));
+			entity->FUN_006772d0(const_cast<Camera*>(camera), light, &mShadowCasterList);
 		}
 	}
 

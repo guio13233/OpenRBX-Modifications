@@ -29,6 +29,9 @@ address,type,symbol,name,module,size
 004610a0,function,,,,888
 00461420,function,,,,612
 0066e3b0,function,,,,1313
+0045d4f0,function,,,,5
+007f5720,function,,,,11
+007f5730,function,,,,11
 00461690,function,,,,280
 00596ca0,function,,,,119
 004617b0,function,,,,404
@@ -818,6 +821,9 @@ address,type,symbol,name,module,size
 00666ad0,library,?erase@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@QAE?AViterator@12@V312@@Z,,,
 00666da0,library,?_Erase@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@IAEXPAU_Node@?$_Tree_nod@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@2@@Z,,,
 00666ea0,library,?erase@?$_Tree@V?$_Tset_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@$0A@@std@@@std@@QAE?AViterator@12@V312@0@Z,,,
+00676750,library,?push_back@?$vector@VPlane@Ogre@@V?$allocator@VPlane@Ogre@@@std@@@std@@QAEXABVPlane@Ogre@@@Z,,,
+0066aef0,library,?find@?$_Tree@V?$_Tmap_traits@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VMeshPtr@Ogre@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VMeshPtr@Ogre@@@std@@@2@$0A@@std@@@std@@QAE?AViterator@12@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@2@@Z,,,
+0066bc00,library,??A?$map@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VMeshPtr@Ogre@@U?$less@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@@2@V?$allocator@U?$pair@$$CBV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VMeshPtr@Ogre@@@std@@@2@@std@@QAEAAVMeshPtr@Ogre@@ABV?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@1@@Z,,,
 006752c0,library,??$_Fill@PA_J_J@std@@YAXPA_J0AB_J@Z,,,
 00675370,library,??$_Median@PAN@std@@YAXPAN00@Z,,,
 006763e0,library,??$_Sort@PANH@std@@YAXPAN0H@Z,,,
@@ -3244,7 +3250,6 @@ address,type,symbol,name,module,size
 00583880,library,?reset@?$optional@V?$concept_adapter@V?$basic_null_device@DUinput@iostreams@boost@@@iostreams@boost@@@detail@iostreams@boost@@@detail@iostreams@boost@@QAEXXZ,,,
 005839a0,library,?reset@?$optional@V?$concept_adapter@VString_sink@@@detail@iostreams@boost@@@detail@iostreams@boost@@QAEXXZ,,,
 005b4820,library,??1?$auto_ptr@VMouseCommand@RBX@@@std@@QAE@XZ,,,
-0067b3d0,library,?UseDefaultOnSave@CXTPPropExchange@@QAEXH@Z,,,
 0067b500,library,?SetDockingContextStickerStyle@CXTPDockingPaneManager@@QAEXW4XTPDockingContextStickerStyle@@@Z,,,
 0069ba09,library,?__CxxUnhandledExceptionFilter@@YGJPAU_EXCEPTION_POINTERS@@@Z,,,
 006b31a0,library,?GetExtent@CXTPImageManagerResource@@QBE?AVCSize@@XZ,,,
@@ -6132,9 +6137,12 @@ address,type,symbol,name,module,size
 009391c4,global,??_R0?AVAxisMoveTool@RBX@@@8,,,
 0091cac0,global,??_R0?AVRbxSceneNode@Ogre@@@8,,,
 0091caa8,global,??_R0?AVNode@Ogre@@@8,,,
+0092b780,global,??_R0?AVSceneNode@Ogre@@@8,,,
 008ceb6c,global,__TI1?AVexception@std@@,,,
 00961410,global,"orientation___Ogre::RbxSubEntity::getWorldOrientation",,,
 00961424,global,"position___Ogre::RbxSubEntity::getWorldPosition",,,
+009613c8,global,"box___Ogre::RbxSubEntity::getWorldBoundingBox",,,
+009613ec,global,"box___Ogre::RbxSubEntity::getDarkCapBounds",,,
 0083df5c,string,,,,
 0067bce0,synthetic,??_ERbxSubEntity@Ogre@@WNI@AEPAXI@Z,,,
 0043ee20,library,?find@?$_Tree@V?$_Tmap_traits@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@$0A@@std@@@std@@QAE?AViterator@12@ABQBVClassDescriptor@Reflection@RBX@@@Z,,,

@@ -48,6 +48,8 @@ public:
 	void FUN_00675a70(RbxSubEntity* subEntity);
 	void FUN_00675c90();
 	RbxSubEntity* FUN_00676680(SubMesh* subMesh, int lodIndex);
+	void FUN_00676730(RbxSubEntity* subEntity);
+	void FUN_006772d0(Camera* camera, const Light* light, std::vector<ShadowCaster*>* casters);
 
 	virtual void FUN_00676870(Camera* cam);
 	virtual void FUN_00674fd0(bool visible);

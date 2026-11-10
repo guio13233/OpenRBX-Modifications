@@ -143,10 +143,21 @@ void RenderScene::FUN_0052c9b0(Ogre::VisualEngine* engine, bool p_unk0x8e)
 	}
 }
 
-// STUB: ROBLOX 0x0052d400
+// FUNCTION: ROBLOX 0x0052d400
 void RenderScene::setThrottle(float t, float m, bool s, float c)
 {
-	STUB(0x52d400);
+	t = G3D::clamp(t, 0.0f, 100.0f);
+
+	if (t != shadingQuality || m != meshDetail || s != shadows || c != cameraDistance) {
+		shadingQuality = t;
+		meshDetail = m;
+		cameraDistance = c;
+		shadows = s;
+
+		lighting = effectSettings.update(
+			shadingQuality, meshDetail, shadows, cameraDistance, desiredLighting, desiredSkyParameters, skyParameters
+		);
+	}
 }
 
 // FUNCTION: ROBLOX 0x0052d570
@@ -158,10 +169,14 @@ void RenderScene::setLighting(const G3D::ReferenceCountedPointer<G3D::Lighting>&
 	);
 }
 
-// STUB: ROBLOX 0x0052d7e0
+// FUNCTION: ROBLOX 0x0052d7e0
 RenderScene::~RenderScene()
 {
-	STUB(0x52d7e0);
+	if (m_unk0x00) {
+		m_unk0x00->getCreator()->getRootSceneNode()->removeChild(m_unk0x00->getName());
+		delete m_unk0x00;
+	}
+	delete m_unk0x04;
 }
 
 // FUNCTION: ROBLOX 0x0052da20
@@ -207,7 +222,7 @@ void RenderScene::render(G3D::RenderDevice* rd, const G3D::GCamera& camera)
 	G3D::CoordinateFrame cameraFrame = camera.getCoordinateFrame();
 
 	if (effectSettings.stencilShadows()) {
-		engine->m_unk0x04->setShadowTechnique(Ogre::SHADOWTYPE_STENCIL_ADDITIVE);
+		engine->m_unk0x04->setShadowTechnique(Ogre::SHADOWTYPE_STENCIL_MODULATIVE);
 		engine->m_unk0x04->setShadowColour(Ogre::ColourValue(0.5f, 0.5f, 0.5f, 1.0f));
 	}
 	else {

@@ -11,6 +11,7 @@
 #include <vector>
 
 namespace RBX {
+class AdornRbxGfx;
 namespace RenderNew {
 class RenderScene;
 } // namespace RenderNew
@@ -48,6 +49,9 @@ public:
 		);
 		~RbxSubEntityShadowRenderable();
 
+		// FUNCTION: ROBLOX 0x0067b3a0
+		HardwareVertexBufferSharedPtr getPositionBuffer(void) { return mPositionBuffer; }
+
 		void getWorldTransforms(Matrix4* xform) const;
 		const Quaternion& getWorldOrientation(void) const;
 		const Vector3& getWorldPosition(void) const;
@@ -61,6 +65,7 @@ public:
 	RbxSubEntity(Entity* parent, SubMesh* subMesh, int lodIndex);
 	virtual ~RbxSubEntity();
 
+	void FUN_0067b3d0(SubMesh* subMesh);
 	void FUN_0067b4b0(const MaterialPtr& material);
 	void FUN_0067b4c0(int lodIndex, SubMesh* subMesh);
 	SubMesh* FUN_0067b4e0(int lodIndex);
@@ -94,9 +99,16 @@ public:
 	// SYNTHETIC: ROBLOX 0x0067bf90
 	// Ogre::RbxSubEntity::`scalar deleting destructor'
 
+	// SYNTHETIC: ROBLOX 0x007f5720
+	// `Ogre::RbxSubEntity::getWorldBoundingBox'::`2'::`dynamic atexit destructor for 'box''
+
+	// SYNTHETIC: ROBLOX 0x007f5730
+	// `Ogre::RbxSubEntity::getDarkCapBounds'::`2'::`dynamic atexit destructor for 'box''
+
 private:
 	friend class RBX::RenderNew::RenderScene;
 	friend class RbxEntity;
+	friend class RBX::AdornRbxGfx;
 
 	Matrix4 m_unk0xdc;                         // 0xdc
 	SubMesh* m_unk0x11c[1];                    // 0x11c

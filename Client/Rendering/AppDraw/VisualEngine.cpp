@@ -3,6 +3,7 @@
 #include "appdraw/RbxSceneManager.h"
 
 #include <G3D/Color4.h>
+#include <G3D/Vector3.h>
 #include <OgreCamera.h>
 #include <OgreException.h>
 #include <OgreHardwareBufferManager.h>
@@ -45,8 +46,14 @@ int g_unk0x00961358;
 int g_unk0x0096135c;
 
 // FUNCTION: ROBLOX 0x00671c70
-Unknown00671c70::Unknown00671c70() : m_unk0x84(false), m_unk0x88(0)
+Unknown00671c70::Unknown00671c70() : m_unk0x84(false), m_unk0x88(NULL)
 {
+}
+
+// FUNCTION: ROBLOX 0x005e0b40 FOLDED
+Vector3 FUN_005e0b40(const G3D::Vector3& v)
+{
+	return Vector3(v.x, v.y, v.z);
 }
 
 // FUNCTION: ROBLOX 0x00671cd0

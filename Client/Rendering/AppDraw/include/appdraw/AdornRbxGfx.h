@@ -14,6 +14,7 @@
 namespace Ogre {
 class RbxEntity;
 class RbxSceneNode;
+class RbxSubEntity;
 class SceneNode;
 class VisualEngine;
 } // namespace Ogre
@@ -25,22 +26,33 @@ namespace RBX {
 class AdornRbxGfx : public Adorn
 {
 private:
-	Ogre::VisualEngine* m_unk0x04;                  // 0x04
-	std::string m_unk0x08;                          // 0x08
-	Ogre::MaterialPtr m_unk0x24;                    // 0x24
-	Ogre::SceneNode* m_unk0x30;                     // 0x30
-	Ogre::RbxSceneNode* m_unk0x34;                  // 0x34
-	Ogre::MaterialPtr m_unk0x38;                    // 0x38
-	std::vector<undefined4> m_unk0x44;              // 0x44
-	std::vector<undefined4> m_unk0x54;              // 0x54
-	std::map<std::string, Ogre::MeshPtr> m_unk0x64; // 0x64
-	Ogre::RbxEntity* m_unk0x70;                     // 0x70
-	Ogre::SceneNode* m_unk0x74;                     // 0x74
-	std::vector<Ogre::SceneNode*> m_unk0x78;        // 0x78
-	std::map<std::string, undefined4> m_unk0x88;    // 0x88
-	G3D::CoordinateFrame m_unk0x94;                 // 0x94
+	Ogre::VisualEngine* m_unk0x04;                     // 0x04
+	std::string m_unk0x08;                             // 0x08
+	Ogre::MaterialPtr m_unk0x24;                       // 0x24
+	Ogre::SceneNode* m_unk0x30;                        // 0x30
+	Ogre::RbxSceneNode* m_unk0x34;                     // 0x34
+	Ogre::MaterialPtr m_unk0x38;                       // 0x38
+	std::vector<Ogre::RbxSubEntity*> m_unk0x44;        // 0x44
+	std::vector<Ogre::RbxSubEntity*> m_unk0x54;        // 0x54
+	std::map<std::string, Ogre::MeshPtr> m_unk0x64;    // 0x64
+	Ogre::RbxEntity* m_unk0x70;                        // 0x70
+	Ogre::SceneNode* m_unk0x74;                        // 0x74
+	std::vector<Ogre::SceneNode*> m_unk0x78;           // 0x78
+	std::map<std::string, Ogre::SceneNode*> m_unk0x88; // 0x88
+	G3D::CoordinateFrame m_unk0x94;                    // 0x94
 
+	void FUN_0066a2d0(
+		Ogre::Matrix4& transform,
+		const Ogre::Vector3& offset,
+		const Ogre::Vector3& scale,
+		const Ogre::Quaternion& rotation
+	);
+	std::string FUN_0066a3c0();
+	Ogre::MeshPtr FUN_0066b450(std::string name);
+	void FUN_0066bf20(const std::string& name, const Ogre::MeshPtr& mesh);
+	Ogre::RbxSubEntity* FUN_0066c0b0();
 	void FUN_0066c190();
+	void FUN_0066c220(const Ogre::MeshPtr& mesh, const Ogre::Matrix4& transform, const Ogre::MaterialPtr& material);
 
 public:
 	AdornRbxGfx(Ogre::VisualEngine* visualEngine);
