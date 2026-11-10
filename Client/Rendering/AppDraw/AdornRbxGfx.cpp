@@ -9,6 +9,7 @@
 
 #include <OgreMaterialManager.h>
 #include <OgreMeshManager.h>
+#include <OgreParticleSystem.h>
 #include <OgreSceneManager.h>
 #include <OgreTextureManager.h>
 #include <OgreViewport.h>
@@ -18,6 +19,9 @@ namespace RBX {
 
 // GLOBAL: ROBLOX 0x00949c7c
 Ogre::SharedPtr<Ogre::RbxFont> g_unk0x00949c7c;
+
+// GLOBAL: ROBLOX 0x009612a8
+int g_unk0x009612a8;
 
 // GLOBAL: ROBLOX 0x00961334
 int g_unk0x00961334;
@@ -112,7 +116,7 @@ G3D::Rect2D AdornRbxGfx::getViewport() const
 	return G3D::Rect2D::xywh(left, top, width, height);
 }
 
-// STUB: ROBLOX 0x0066a810
+// FUNCTION: ROBLOX 0x0066a810
 void AdornRbxGfx::setTexture(int stage, G3D::ReferenceCountedPointer<TextureProxyBase> texture)
 {
 	if (texture.isNull()) {
@@ -125,19 +129,19 @@ void AdornRbxGfx::setTexture(int stage, G3D::ReferenceCountedPointer<TextureProx
 	proxy->resolve(reinterpret_cast<G3D::RenderDevice*>(m_unk0x04));
 }
 
-// STUB: ROBLOX 0x0066a8f0
+// FUNCTION: ROBLOX 0x0066a8f0
 G3D::Rect2D AdornRbxGfx::getTextureSize(G3D::ReferenceCountedPointer<TextureProxyBase> texture) const
 {
 	RenderNew::TextureProxy* proxy = static_cast<RenderNew::TextureProxy*>(texture.pointer());
 	proxy->resolve(reinterpret_cast<G3D::RenderDevice*>(m_unk0x04));
 
 	Ogre::TexturePtr ogreTexture = Ogre::TextureManager::getSingleton().getByName(proxy->filename);
-	float width = ogreTexture->getWidth();
-	float height = ogreTexture->getHeight();
-	return G3D::Rect2D::xywh(0.0f, 0.0f, width, height);
+	size_t width = ogreTexture->getWidth();
+	size_t height = ogreTexture->getHeight();
+	return G3D::Rect2D(G3D::Vector2((float) width, (float) height));
 }
 
-// STUB: ROBLOX 0x0066aa60
+// FUNCTION: ROBLOX 0x0066aa60
 G3D::ReferenceCountedPointer<TextureProxyBase> AdornRbxGfx::createTextureProxy(const std::string& name)
 {
 	return new RenderNew::TextureProxy(name);
@@ -149,10 +153,23 @@ void AdornRbxGfx::prepareRenderPass()
 	STUB(0x66b510);
 }
 
-// STUB: ROBLOX 0x0066c2b0
+// STUB: ROBLOX 0x0066c190
+void AdornRbxGfx::FUN_0066c190()
+{
+	for (int i = 0; i < (int) m_unk0x54.size(); i++) {
+		m_unk0x44.push_back(m_unk0x54[i]);
+	}
+	m_unk0x54.clear();
+}
+
+// FUNCTION: ROBLOX 0x0066c2b0
 void AdornRbxGfx::finishRenderPass()
 {
-	STUB(0x66c2b0);
+	m_unk0x30->removeAndDestroyAllChildren();
+	m_unk0x04->m_unk0x04->destroyAllManualObjects();
+	g_unk0x009612a8 = 0;
+	m_unk0x70->FUN_00675c90();
+	FUN_0066c190();
 }
 
 // STUB: ROBLOX 0x0066c2f0
@@ -194,8 +211,10 @@ void AdornRbxGfx::ray(const G3D::Ray& ray, const G3D::Color4& color, float scale
 // STUB: ROBLOX 0x0066df30
 AdornRbxGfx::~AdornRbxGfx()
 {
-	for (std::map<std::string, Ogre::MeshPtr>::const_iterator it = m_unk0x64.begin(); it != m_unk0x64.end(); ++it) {
-		Ogre::MeshManager::getSingleton().remove(it->second->getHandle());
+	for (std::map<std::string, Ogre::MeshPtr>::const_iterator it = m_unk0x64.begin(), end = m_unk0x64.end(); it != end;
+		 ++it) {
+		const Ogre::MeshPtr& mesh = it->second;
+		Ogre::MeshManager::getSingleton().remove(mesh->getHandle());
 	}
 	m_unk0x64.clear();
 
@@ -205,8 +224,9 @@ AdornRbxGfx::~AdornRbxGfx()
 	delete m_unk0x70;
 
 	for (int i = 0; i < (int) m_unk0x78.size(); i++) {
-		Ogre::Entity* entity = static_cast<Ogre::Entity*>(m_unk0x78[i]->detachObject((unsigned short) 0));
-		m_unk0x04->m_unk0x04->destroyEntity(entity->getName());
+		m_unk0x04->m_unk0x04->destroyParticleSystem(
+			static_cast<Ogre::ParticleSystem*>(m_unk0x78[i]->getAttachedObject((unsigned short) 0))->getName()
+		);
 		m_unk0x04->m_unk0x04->destroySceneNode(m_unk0x78[i]->getName());
 	}
 	if (m_unk0x74) {

@@ -3,13 +3,19 @@
 #include "InstanceExplorer.h"
 #include "LogManager.h"
 #include "MainFrm.h"
+#include "SaveToRobloxDialog.h"
 #include "network/Players.h"
+#include "script/LuaMemory.h"
 #include "script/ScriptContext.h"
 #include "util/ContentProvider.h"
+#include "util/Log.h"
 #include "util/RunStateOwner.h"
 #include "util/StandardOut.h"
 #include "v8datamodel/Selection.h"
 #include "v8datamodel/TimeState.h"
+#include "v8datamodel/Visit.h"
+#include "v8datamodel/Workspace.h"
+#include "v8xml/SerializerV2.h"
 
 #include <boost/iostreams/copy.hpp>
 #include <shlobj.h>
@@ -17,6 +23,25 @@
 #include <sstream>
 
 IMPLEMENT_DYNCREATE(CRobloxDoc, CDocument)
+
+template <class T>
+static T* createService(RBX::DataModel* dataModel)
+{
+	return dataModel ? dataModel->create<T>() : NULL;
+}
+
+static bool canSave(RBX::DataModel* dataModel)
+{
+	bool result = !RBX::Network::Players::clientIsPresent(dataModel, true) ||
+				  RBX::Network::Players::serverIsPresent(dataModel, true);
+	return result;
+}
+
+template <class T>
+static T* findService(RBX::DataModel* dataModel)
+{
+	return dataModel ? dataModel->find<T>() : NULL;
+}
 
 // FUNCTION: ROBLOX 0x0040ffc0
 void CutVerb::doIt(RBX::IDataState* dataState)
@@ -53,6 +78,30 @@ void CopyVerb::doIt(RBX::IDataState* dataState)
 	STUB(0x4125e0);
 }
 
+// FUNCTION: ROBLOX 0x00453ed0
+void CRobloxDoc::OnCloseDocument()
+{
+	CDocument::OnCloseDocument();
+}
+
+// FUNCTION: ROBLOX 0x00454190
+CPublishAsPlaceDialog::CPublishAsPlaceDialog(IDispatch* external, CWnd* pParentWnd)
+	: CSaveToRobloxDialog(external, FUN_00407190() + "/IDE/Upload.aspx", pParentWnd)
+{
+}
+
+// FUNCTION: ROBLOX 0x00454250
+CUploadPlaceDialog::CUploadPlaceDialog(IDispatch* external, CWnd* pParentWnd)
+	: CSaveToRobloxDialog(external, FUN_00407190() + "/Game/Upload.aspx", pParentWnd)
+{
+}
+
+// FUNCTION: ROBLOX 0x004542f0
+CSaveModelToRobloxDialog::CSaveModelToRobloxDialog(IDispatch* external, CWnd* pParentWnd)
+	: CSaveToRobloxDialog(external, FUN_00407190() + "/UI/Save.aspx?type=Model", pParentWnd)
+{
+}
+
 // FUNCTION: ROBLOX 0x00454390
 void ReportAbuseVerb::doIt(RBX::IDataState* dataState)
 {
@@ -75,10 +124,127 @@ void ExitCommand::doIt(RBX::IDataState* dataState)
 	}
 }
 
+// FUNCTION: ROBLOX 0x00454430
+void CRobloxDoc::FUN_00454430()
+{
+	CString filter;
+	filter.LoadString(184);
+
+	CFileDialog dialog(FALSE, "rbxm", NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, filter);
+	if (dialog.DoModal() == IDOK) {
+		CComBSTR pathName(dialog.GetPathName());
+		m_unk0x78->SaveSelectionToFile(pathName);
+	}
+}
+
+// FUNCTION: ROBLOX 0x00454580
+BOOL CRobloxDoc::DoSave(LPCTSTR lpszPathName, BOOL bReplace)
+{
+	if (!canSave(m_unk0x78->FUN_0046edc0().get())) {
+		return FALSE;
+	}
+
+	return CDocument::DoSave(lpszPathName, bReplace);
+}
+
+// FUNCTION: ROBLOX 0x00454660
+BOOL CRobloxDoc::OnSaveDocument(LPCTSTR lpszPathName)
+{
+	if (!canSave(m_unk0x78->FUN_0046edc0().get())) {
+		return FALSE;
+	}
+
+	if (m_unk0x78->SaveToFile(CComBSTR(lpszPathName)) != S_OK) {
+		return FALSE;
+	}
+
+	SetModifiedFlag(FALSE);
+	return TRUE;
+}
+
+// FUNCTION: ROBLOX 0x00454920
+void CRobloxDoc::FUN_00454920()
+{
+	CPublishAsPlaceDialog dialog(m_unk0x78, NULL);
+	dialog.DoModal();
+}
+
+// FUNCTION: ROBLOX 0x004549c0
+void CRobloxDoc::FUN_004549c0()
+{
+	CSaveModelToRobloxDialog dialog(m_unk0x78, NULL);
+	dialog.DoModal();
+}
+
+// FUNCTION: ROBLOX 0x00454a60
+void CRobloxDoc::FUN_00454a60()
+{
+	CRobloxDHtmlDialog dialog(123, FUN_00407190() + "/AbuseReport/InGameChat.aspx", NULL);
+	dialog.SetExternalDispatch(m_unk0x78);
+	dialog.DoModal();
+}
+
 // FUNCTION: ROBLOX 0x004558a0
 RBX::VerbContainer* CRobloxDoc::FUN_004558a0()
 {
 	return FUN_00403290()->getWorkspace();
+}
+
+// FUNCTION: ROBLOX 0x00455900
+void CRobloxDoc::FUN_00455900()
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	m_unk0x74->m_unk0x120.doIt(m_unk0x78->FUN_0046edc0().get());
+}
+
+// FUNCTION: ROBLOX 0x00455a30
+void CRobloxDoc::FUN_00455a30(CCmdUI* pCmdUI)
+{
+	boost::shared_ptr<RBX::DataModel> dataModel = m_unk0x78->FUN_0046edc0();
+	std::string name;
+	{
+		RBX::DataModel::Lock lock(dataModel);
+		pCmdUI->Enable(dataModel->canUndo(name));
+	}
+
+	CString text;
+	text.Format(130, name.c_str());
+	pCmdUI->SetText(text);
+}
+
+// FUNCTION: ROBLOX 0x00455bb0
+void CRobloxDoc::FUN_00455bb0()
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	m_unk0x74->m_unk0x130.doIt(m_unk0x78->FUN_0046edc0().get());
+}
+
+// FUNCTION: ROBLOX 0x00455ce0
+void CRobloxDoc::FUN_00455ce0(CCmdUI* pCmdUI)
+{
+	boost::shared_ptr<RBX::DataModel> dataModel = m_unk0x78->FUN_0046edc0();
+	std::string name;
+	{
+		RBX::DataModel::Lock lock(dataModel);
+		pCmdUI->Enable(dataModel->canRedo(name));
+	}
+
+	CString text;
+	text.Format(131, name.c_str());
+	pCmdUI->SetText(text);
+}
+
+// FUNCTION: ROBLOX 0x004561a0
+void CRobloxDoc::FUN_004561a0()
+{
+	CString filter;
+	filter.LoadString(184);
+
+	CFileDialog dialog(TRUE, "rbxm", NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, filter);
+	if (dialog.DoModal() == IDOK) {
+		RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+		m_unk0x78->FUN_004702b0(RBX::ContentId::fromFile(static_cast<LPCTSTR>(dialog.GetPathName())), true);
+	}
 }
 
 // FUNCTION: ROBLOX 0x00456b50
@@ -266,6 +432,14 @@ void CRobloxDoc::FUN_00453eb0(CCmdUI* pCmdUI)
 	pCmdUI->Enable(TRUE);
 }
 
+// FUNCTION: ROBLOX 0x00458750
+void CRobloxDoc::FUN_00458750(CCmdUI* pCmdUI)
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	RBX::Selection* selection = createService<RBX::Selection>(m_unk0x78->FUN_0046edc0().get());
+	pCmdUI->Enable(selection->size() > 0);
+}
+
 // STUB: ROBLOX 0x004588a0
 void CRobloxDoc::FUN_004588a0(NMHDR* pNMHDR, LRESULT* pResult)
 {
@@ -306,6 +480,30 @@ void CRobloxDoc::FUN_004588a0(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
+// FUNCTION: ROBLOX 0x00458c80
+void CRobloxDoc::FUN_00458c80(CCmdUI* pCmdUI)
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	pCmdUI->Enable(FUN_00403290()->create<RBX::RunService>()->getRunState() == RBX::RS_RUNNING);
+}
+
+// FUNCTION: ROBLOX 0x00458dc0
+void CRobloxDoc::FUN_00458dc0(CCmdUI* pCmdUI)
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	RBX::RunState runState = FUN_00403290()->create<RBX::RunService>()->getRunState();
+	bool hasLocalPlayer = RBX::Network::Players::findLocalPlayer(FUN_00403290().get()) != NULL;
+	pCmdUI->Enable(runState != RBX::RS_NORMAL && !hasLocalPlayer);
+}
+
+// FUNCTION: ROBLOX 0x00458f60
+void CRobloxDoc::FUN_00458f60(CCmdUI* pCmdUI)
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	RBX::RunService* runService = FUN_00403290()->create<RBX::RunService>();
+	pCmdUI->Enable(!runService->runDisabled && !runService->isRunState());
+}
+
 // STUB: ROBLOX 0x004590a0
 void CRobloxDoc::FUN_004590a0(CCmdUI* pCmdUI)
 {
@@ -319,6 +517,71 @@ void CRobloxDoc::FUN_004590a0(CCmdUI* pCmdUI)
 		else {
 			pCmdUI->SetText("");
 		}
+	}
+}
+
+// FUNCTION: ROBLOX 0x004592c0
+void CRobloxDoc::FUN_004592c0(CCmdUI* pCmdUI)
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	RBX::ScriptContext* scriptContext = findService<RBX::ScriptContext>(FUN_00403290().get());
+	pCmdUI->Enable(scriptContext && scriptContext->hasState());
+}
+
+// FUNCTION: ROBLOX 0x00459400
+void CRobloxDoc::FUN_00459400()
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	RBX::ScriptContext* scriptContext = findService<RBX::ScriptContext>(FUN_00403290().get());
+	if (scriptContext && scriptContext->allocator) {
+		scriptContext->gc();
+
+		unsigned int heapSize;
+		unsigned int heapCount;
+		scriptContext->allocator->getHeapStats(heapSize, heapCount);
+
+		std::string heap = RBX::Log::formatMem(heapSize);
+		unsigned int threadCount = scriptContext->getThreadCount();
+		RBX::StandardOut::singleton()->print(
+			RBX::MESSAGE_INFO, "Script heap %s (%d blocks), %d threads", heap.c_str(), heapCount, threadCount
+		);
+	}
+}
+
+// FUNCTION: ROBLOX 0x00459600
+void CRobloxDoc::FUN_00459600(CCmdUI* pCmdUI)
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	RBX::ScriptContext* scriptContext = findService<RBX::ScriptContext>(FUN_00403290().get());
+	if (scriptContext && scriptContext->allocator) {
+		char text[32];
+		sprintf(text, "%d threads", scriptContext->getThreadCount());
+		pCmdUI->SetText(text);
+		pCmdUI->Enable(TRUE);
+	}
+	else {
+		pCmdUI->SetText("");
+		pCmdUI->Enable(FALSE);
+	}
+}
+
+// FUNCTION: ROBLOX 0x00459790
+void CRobloxDoc::FUN_00459790(CCmdUI* pCmdUI)
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	RBX::ScriptContext* scriptContext = findService<RBX::ScriptContext>(FUN_00403290().get());
+	if (scriptContext && scriptContext->allocator) {
+		unsigned int heapSize;
+		unsigned int heapCount;
+		scriptContext->allocator->getHeapStats(heapSize, heapCount);
+
+		std::string heap = RBX::Log::formatMem(heapSize);
+		pCmdUI->SetText(heap.c_str());
+		pCmdUI->Enable(TRUE);
+	}
+	else {
+		pCmdUI->SetText("");
+		pCmdUI->Enable(FALSE);
 	}
 }
 
@@ -348,14 +611,14 @@ BOOL CRobloxDoc::FUN_00459950(std::string fileName)
 			RBX::Security::LocalGUI, script, fileName.c_str(), arguments
 		);
 	}
-	catch (...) {
+	catch (std::exception&) {
 		return FALSE;
 	}
 
 	return TRUE;
 }
 
-// STUB: ROBLOX 0x00459c80
+// FUNCTION: ROBLOX 0x00459c80
 void CRobloxDoc::FUN_00459c80()
 {
 	CString filter;
@@ -367,11 +630,113 @@ void CRobloxDoc::FUN_00459c80()
 	}
 }
 
+// FUNCTION: ROBLOX 0x0045a0b0
+void CRobloxDoc::FUN_0045a0b0(CCmdUI* pCmdUI)
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	pCmdUI->Enable(FUN_00403290()->create<RBX::Network::Players>()->canReportAbuse() ? TRUE : FALSE);
+}
+
+// STUB: ROBLOX 0x0045a1f0
+BOOL CRobloxDoc::SaveModified()
+{
+	if (!m_unk0x78->FUN_0046edc0()) {
+		return TRUE;
+	}
+
+	if (!IsModified()) {
+		return TRUE;
+	}
+
+	RBX::DataModel::Lock lock(FUN_00403290());
+	bool wasRunning = createService<RBX::RunService>(FUN_00403290().get())->isRunState();
+	createService<RBX::RunService>(FUN_00403290().get())->pause();
+	RBX::Visit* visit = createService<RBX::Visit>(FUN_00403290().get());
+
+	BOOL result;
+	if (visit == NULL || visit->getUploadUrl() == "NoVisit") {
+		SetForegroundWindow(AfxGetMainWnd()->m_hWnd);
+		result = CDocument::SaveModified();
+	}
+	else {
+		if (visit->getUploadUrl().size() == 0) {
+			return TRUE;
+		}
+
+		FlashWindow(AfxGetMainWnd()->m_hWnd, FALSE);
+
+		CUploadPlaceDialog dialog(m_unk0x78, NULL);
+		result = dialog.DoModal() == IDOK;
+		if (!result && wasRunning) {
+			createService<RBX::RunService>(m_unk0x78->FUN_0046edc0().get())->run();
+		}
+	}
+
+	return result;
+}
+
+// FUNCTION: ROBLOX 0x0045a600
+void CRobloxDoc::FUN_0045a600()
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	createService<RBX::RunService>(FUN_00403290().get())->pause();
+}
+
+// FUNCTION: ROBLOX 0x0045a730
+void CRobloxDoc::FUN_0045a730()
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	if (FUN_00403290()->create<RBX::RunService>()->getRunState() != RBX::RS_NORMAL) {
+		createService<RBX::RunService>(FUN_00403290().get())->reset();
+		FUN_00403290()->clearContents();
+		SerializerV2::load(m_unk0x60.get(), FUN_00403290().get());
+		FUN_00403290()->getWorkspace()->joinAllHack();
+		m_unk0x60.reset();
+	}
+}
+
+// FUNCTION: ROBLOX 0x0045a9e0
+void CRobloxDoc::FUN_0045a9e0()
+{
+	RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+	if (FUN_00403290()->create<RBX::RunService>()->getRunState() == RBX::RS_NORMAL) {
+		m_unk0x60.reset(SerializerV2::newRootElement());
+		FUN_00403290()->writeChildren(m_unk0x60.get());
+	}
+
+	createService<RBX::RunService>(FUN_00403290().get())->run();
+}
+
 // clang-format off
 BEGIN_MESSAGE_MAP(CRobloxDoc, CDocument)
+	ON_COMMAND(0x80b6, FUN_00454920)
+	ON_UPDATE_COMMAND_UI(0x80b6, FUN_00453eb0)
+	ON_COMMAND(0x80b7, FUN_004549c0)
+	ON_UPDATE_COMMAND_UI(0x80b7, FUN_00458750)
 	ON_NOTIFY(CBN_XTP_EXECUTE, 0x80c3, FUN_004588a0)
 	ON_UPDATE_COMMAND_UI(0x80c3, FUN_00453eb0)
 	ON_UPDATE_COMMAND_UI(0xbb, FUN_00455ff0)
 	ON_UPDATE_COMMAND_UI(0xbe, FUN_004590a0)
+	ON_COMMAND(0x80f1, FUN_00459c80)
+	ON_UPDATE_COMMAND_UI(0x80f1, FUN_00453eb0)
+	ON_COMMAND(0x8100, FUN_00454a60)
+	ON_UPDATE_COMMAND_UI(0x8100, FUN_0045a0b0)
+	ON_COMMAND(0x8021, FUN_004561a0)
+	ON_COMMAND(0x8025, FUN_00454430)
+	ON_UPDATE_COMMAND_UI(0x8025, FUN_00458750)
+	ON_COMMAND(ID_EDIT_UNDO, FUN_00455900)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_UNDO, FUN_00455a30)
+	ON_COMMAND(ID_EDIT_REDO, FUN_00455bb0)
+	ON_UPDATE_COMMAND_UI(ID_EDIT_REDO, FUN_00455ce0)
+	ON_COMMAND(0x80c7, FUN_0045a600)
+	ON_UPDATE_COMMAND_UI(0x80c7, FUN_00458c80)
+	ON_COMMAND(0x80c8, FUN_0045a730)
+	ON_UPDATE_COMMAND_UI(0x80c8, FUN_00458dc0)
+	ON_COMMAND(0x80c6, FUN_0045a9e0)
+	ON_UPDATE_COMMAND_UI(0x80c6, FUN_00458f60)
+	ON_UPDATE_COMMAND_UI(0x80da, FUN_004592c0)
+	ON_COMMAND(0x80da, FUN_00459400)
+	ON_UPDATE_COMMAND_UI(0x80f6, FUN_00459600)
+	ON_UPDATE_COMMAND_UI(0x80db, FUN_00459790)
 END_MESSAGE_MAP()
 // clang-format on

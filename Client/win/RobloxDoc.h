@@ -133,14 +133,39 @@ public:
 
 	virtual BOOL OnNewDocument();
 	virtual BOOL OnOpenDocument(LPCTSTR lpszPathName);
+	virtual BOOL OnSaveDocument(LPCTSTR lpszPathName);
+	virtual void OnCloseDocument();
+	virtual BOOL SaveModified();
+	virtual BOOL DoSave(LPCTSTR lpszPathName, BOOL bReplace = TRUE);
 	BOOL FUN_00459950(std::string p_unk0x04);
 	void FUN_00459c80();
 
 protected:
 	afx_msg void FUN_00453eb0(CCmdUI* pCmdUI);
+	afx_msg void FUN_00454430();
+	afx_msg void FUN_00454920();
+	afx_msg void FUN_004549c0();
+	afx_msg void FUN_00454a60();
+	afx_msg void FUN_00455900();
+	afx_msg void FUN_00455a30(CCmdUI* pCmdUI);
+	afx_msg void FUN_00455bb0();
+	afx_msg void FUN_00455ce0(CCmdUI* pCmdUI);
+	afx_msg void FUN_004561a0();
 	afx_msg void FUN_00455ff0(CCmdUI* pCmdUI);
 	afx_msg void FUN_004590a0(CCmdUI* pCmdUI);
 	afx_msg void FUN_004588a0(NMHDR* pNMHDR, LRESULT* pResult);
+	afx_msg void FUN_00458750(CCmdUI* pCmdUI);
+	afx_msg void FUN_00458c80(CCmdUI* pCmdUI);
+	afx_msg void FUN_004592c0(CCmdUI* pCmdUI);
+	afx_msg void FUN_00459400();
+	afx_msg void FUN_00459600(CCmdUI* pCmdUI);
+	afx_msg void FUN_00459790(CCmdUI* pCmdUI);
+	afx_msg void FUN_00458dc0(CCmdUI* pCmdUI);
+	afx_msg void FUN_00458f60(CCmdUI* pCmdUI);
+	afx_msg void FUN_0045a0b0(CCmdUI* pCmdUI);
+	afx_msg void FUN_0045a600();
+	afx_msg void FUN_0045a730();
+	afx_msg void FUN_0045a9e0();
 
 	DECLARE_MESSAGE_MAP()
 

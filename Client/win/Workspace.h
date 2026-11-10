@@ -56,13 +56,13 @@ public:
 
 	HRESULT FinalConstruct();
 
-	// FUNCTION: ROBLOX 0x0046edc0
-	boost::shared_ptr<RBX::DataModel> FUN_0046edc0() const { return m_unk0x24; }
+	boost::shared_ptr<RBX::DataModel> FUN_0046edc0() const;
 
 	// FUNCTION: ROBLOX 0x0046edf0
 	RBX::Workspace* FUN_0046edf0() const { return m_unk0x24 ? m_unk0x24->getWorkspace() : NULL; }
 
 	void FUN_0046ef00(std::istream& stream);
+	void FUN_004702b0(RBX::ContentId contentId, bool p_unk0x20);
 
 protected:
 	virtual void onEvent(const RBX::Selection* source, RBX::SelectionChanged event);
@@ -72,7 +72,6 @@ private:
 	std::auto_ptr<XmlElement> FUN_0046f040();
 	void FUN_0046f420();
 	std::auto_ptr<XmlElement> FUN_0046ffa0();
-	void FUN_004702b0(RBX::ContentId contentId, bool p_unk0x20);
 	HRESULT FUN_004700b0(const XmlElement* root, std::ostream& stream);
 
 	boost::shared_ptr<RBX::DataModel> m_unk0x24;  // 0x24

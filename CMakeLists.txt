@@ -370,8 +370,10 @@ set(OPENRBX_RENDERLIB_SOURCES
   Client/Rendering/RenderLib/RenderSurface.cpp
   Client/Rendering/RenderLib/TextureProxy.cpp
 )
-set(OPENRBX_APPDRAW_CLIENT_SOURCES
+set(OPENRBX_APPDRAW_RBXGFX_SOURCES
   Client/Rendering/AppDraw/AdornRbxGfx.cpp
+)
+set(OPENRBX_APPDRAW_CLIENT_SOURCES
   Client/Rendering/AppDraw/RbxEntity.cpp
   Client/Rendering/AppDraw/RbxFont.cpp
   Client/Rendering/AppDraw/RbxSceneManager.cpp
@@ -510,6 +512,12 @@ add_engine_library(appdraw
   SOURCES ${OPENRBX_APPDRAW_SOURCES}
 )
 
+add_engine_library(appdraw_rbxgfx
+  DEFINITIONS _RELEASE
+  OPTIONS /O2 /GS-
+  SOURCES ${OPENRBX_APPDRAW_RBXGFX_SOURCES}
+)
+
 add_engine_library(appdraw_client
   DEFINITIONS _RELEASE
   OPTIONS /O2
@@ -537,15 +545,17 @@ add_engine_library(renderlibnew
   SOURCES ${OPENRBX_RENDERLIBNEW_SOURCES}
 )
 
-list(REMOVE_ITEM OPENRBX_ENGINE_LIBRARIES rbxviewnew renderlibnew appdraw_client)
-foreach(lib rbxviewnew renderlibnew appdraw_client)
+list(REMOVE_ITEM OPENRBX_ENGINE_LIBRARIES rbxviewnew renderlibnew appdraw_rbxgfx appdraw_client)
+foreach(lib rbxviewnew renderlibnew appdraw_rbxgfx appdraw_client)
   if (TARGET ${lib})
     target_include_directories(${lib} PRIVATE ${OPENRBX_RENDERLIBNEW_INCLUDE_DIRS} "${PROJECT_SOURCE_DIR}/Client/Rendering/OgreSDK/include")
   endif()
 endforeach()
-if (TARGET appdraw_client)
-  target_include_directories(appdraw_client PRIVATE "${OPENRBX_3RDPARTY}/Microsoft DirectX SDK (November 2007)/Include")
-endif()
+foreach(lib appdraw_rbxgfx appdraw_client)
+  if (TARGET ${lib})
+    target_include_directories(${lib} PRIVATE "${OPENRBX_3RDPARTY}/Microsoft DirectX SDK (November 2007)/Include")
+  endif()
+endforeach()
 
 if (MSVC_FOR_DECOMP)
   set(OPENRBX_TOOLKITPRO "${OPENRBX_3RDPARTY}/Codejock Software/MFC/Xtreme ToolkitPro v11.2.1")
@@ -690,6 +700,7 @@ if (MSVC_FOR_DECOMP)
     Client/win/RobloxReportView.cpp
     Client/win/RobloxView.cpp
     Client/win/RobloxWnd.cpp
+    Client/win/SaveToRobloxDialog.cpp
     Client/win/ScintillaCtrl.cpp
     Client/win/ScintillaDocView.cpp
     Client/win/ScriptDoc.cpp
@@ -727,7 +738,7 @@ if (MSVC_FOR_DECOMP)
   )
 
   set(OPENRBX_CLIENT_ENGINE_LIBRARIES)
-  foreach(lib rbxview renderlib rbxviewnew renderlibnew network app appdraw appdraw_client lua)
+  foreach(lib rbxview renderlib rbxviewnew renderlibnew network app appdraw_rbxgfx appdraw appdraw_client lua)
     if (TARGET ${lib})
       list(APPEND OPENRBX_CLIENT_ENGINE_LIBRARIES ${lib})
     endif()
