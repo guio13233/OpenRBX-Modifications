@@ -275,7 +275,7 @@ void ModelInstance::renderControllerFlag(Adorn* adorn)
 // FUNCTION: ROBLOX 0x00565b50
 bool ModelInstance::shouldRender3dAdorn() const
 {
-	return isTopLevelPVInstance() && showModelCoord;
+	return isTopLevelPVInstance() && (showModelCoord || shouldRenderControllerFlag());
 }
 
 // FUNCTION: WEBSERVICE 0x1005ae20

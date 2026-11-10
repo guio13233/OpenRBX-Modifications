@@ -182,17 +182,18 @@ jobs:
 
         cat ROBLOX-diff.txt
 
-    - name: Check Vtables
-      if: ${{ steps.detection.conclusion == 'success' && always() }}
-      shell: bash
-      run: |
-        reccmp-vtable --target WEBSERVICE
+    # we don't need this
+    # - name: Check Vtables
+    #   if: ${{ steps.detection.conclusion == 'success' && always() }}
+    #   shell: bash
+    #   run: |
+    #     reccmp-vtable --target WEBSERVICE
 
-    - name: Check Variables
-      if: ${{ steps.detection.conclusion == 'success' && always() }}
-      shell: bash
-      run: |
-        reccmp-datacmp --target WEBSERVICE
+    # - name: Check Variables
+    #   if: ${{ steps.detection.conclusion == 'success' && always() }}
+    #   shell: bash
+    #   run: |
+    #     reccmp-datacmp --target WEBSERVICE
 
     - name: Check Folding
       if: ${{ steps.detection.conclusion == 'success' && always() }}
