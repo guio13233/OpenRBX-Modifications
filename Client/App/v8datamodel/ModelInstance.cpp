@@ -247,16 +247,24 @@ bool ModelInstance::hitTest(const G3D::Ray& worldRay, G3D::Vector3& worldHitPoin
 	return false;
 }
 
-void PVInstance::renderControllerFlag(Adorn* adorn)
+void ModelInstance::shouldRenderControllerFlag() const
 {
-	const Controller::ControllerType type = getTopPVController()->getControllerType();
-	if (type == Controller::NO_CONTROLLER || type == Controller::PLAYER_CONTROLLER) {
+	if (getTopPVController()->getControllerType() == Controller::NO_CONTROLLER ||
+		getTopPVController()->getControllerType() == Controller::PLAYER_CONTROLLER) {
 		return;
 	}
+
 	if (!getShowControllerFlag()) {
 		return;
 	}
 
+	return isTopFlag.getValue();
+}
+
+void ModelInstance::renderControllerFlag(Adorn* adorn)
+{
+	const Controller::ControllerType type = getTopPVController()->getControllerType();
+	
 	adorn->setObjectToWorldMatrix(getLocation());
 	adorn->drawFlag(G3D::Vector3::zero(), G3D::Vector3(0, FlagHeight.getValue(), 0), Controller::controllerTypeToColor(type), 3.0f);
 }
@@ -280,7 +288,7 @@ void ModelInstance::render3dAdorn(Adorn* adorn)
 		renderCoordinateFrame(adorn);
 	}
 
-	if (IsControllable.getValue(this)) {
+	if (shouldRenderControllerFlag()) {
 		renderControllerFlag(adorn);
 	}
 }

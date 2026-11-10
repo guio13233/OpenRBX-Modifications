@@ -52,6 +52,8 @@ private:
 		FlagHeight.setDirty();
 	}
 
+	bool shouldRenderControllerFlag() const;
+
 	void renderControllerFlag(Adorn* adorn);
 	virtual bool shouldRender3dAdorn() const;
 	virtual void render3dAdorn(Adorn* adorn);
