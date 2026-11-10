@@ -251,11 +251,11 @@ bool ModelInstance::shouldRenderControllerFlag() const
 {
 	if (getTopPVController()->getControllerType() == Controller::NO_CONTROLLER ||
 		getTopPVController()->getControllerType() == Controller::PLAYER_CONTROLLER) {
-		return;
+		return false;
 	}
 
 	if (!getShowControllerFlag()) {
-		return;
+		return false;
 	}
 
 	return IsTopFlag.getValue();
