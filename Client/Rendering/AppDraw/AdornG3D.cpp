@@ -6,6 +6,7 @@
 #include "renderlib/TextureProxy.h"
 #include "util/Rect.h"
 
+#include "rbxgraphics/Adorn.h"
 #include <GLG3D/Draw.h>
 
 namespace RBX {

@@ -247,7 +247,7 @@ bool ModelInstance::hitTest(const G3D::Ray& worldRay, G3D::Vector3& worldHitPoin
 	return false;
 }
 
-void ModelInstance::shouldRenderControllerFlag() const
+bool ModelInstance::shouldRenderControllerFlag() const
 {
 	if (getTopPVController()->getControllerType() == Controller::NO_CONTROLLER ||
 		getTopPVController()->getControllerType() == Controller::PLAYER_CONTROLLER) {
@@ -258,7 +258,7 @@ void ModelInstance::shouldRenderControllerFlag() const
 		return;
 	}
 
-	return isTopFlag.getValue();
+	return IsTopFlag.getValue();
 }
 
 void ModelInstance::renderControllerFlag(Adorn* adorn)
