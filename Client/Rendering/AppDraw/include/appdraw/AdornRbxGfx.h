@@ -87,6 +87,8 @@ public:
 		const G3D::Vector3& v3,
 		const G3D::Color4& color
 	);
+
+	virtual void drawFlag(const G3D::Vector3& position, const G3D::Vector3& offset, const G3D::Color4& color, float scale);
 };
 
 DECOMP_SIZE_ASSERT(AdornRbxGfx, 0xc4)
