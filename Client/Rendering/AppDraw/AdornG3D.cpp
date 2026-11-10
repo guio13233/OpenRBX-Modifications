@@ -222,7 +222,7 @@ void AdornG3D::drawFlag(const G3D::Vector3& position, const G3D::Vector3& offset
 		renderDevice->sendVertex(flagAttachment);
 		renderDevice->sendVertex(poleTop);
 		renderDevice->sendVertex(flagTip);
-	renderDevice->endIndexedPrimitives();
+	renderDevice->endPrimitive();
 	renderDevice->popState();
 	lineSegment(G3D::LineSegment::fromTwoPoints(position, poleTop), color, 1.0f);
 }
