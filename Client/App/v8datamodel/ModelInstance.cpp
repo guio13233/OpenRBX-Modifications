@@ -6,6 +6,8 @@
 #include "util/Name.h"
 #include "v8datamodel/PartInstance.h"
 
+#include "rbxgraphics/Adorn.h"
+
 namespace RBX {
 
 char sModel[] = "Model";
