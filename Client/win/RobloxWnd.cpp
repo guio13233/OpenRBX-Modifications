@@ -95,6 +95,8 @@ static void removeRunView(RBX::DataModel* dataModel, RBX::IRunView* runView)
 	}
 }
 
+IMPLEMENT_DYNAMIC(CRobloxWnd, CWnd)
+
 // FUNCTION: ROBLOX 0x0045f650
 BOOL CRobloxWnd::OnEraseBkgnd(CDC* pDC)
 {
@@ -889,7 +891,7 @@ std::string CRobloxWnd::getMetric(const std::string& metric) const
 	return "";
 }
 
-// STUB: ROBLOX 0x00463710
+// FUNCTION: ROBLOX 0x00463710
 CRobloxWnd::RenderStatsItem::RenderStatsItem(RenderStats* stats)
 {
 	m_unk0x138 = stats;
@@ -1017,7 +1019,7 @@ void CRobloxWnd::FUN_00463c30(CWorkspace* workspace)
 	}
 }
 
-// STUB: ROBLOX 0x00464000
+// FUNCTION: ROBLOX 0x00464000
 CRobloxWnd::~CRobloxWnd()
 {
 	FUN_00463c30(NULL);

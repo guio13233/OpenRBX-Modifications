@@ -74,12 +74,24 @@ private:
 	std::auto_ptr<XmlElement> FUN_0046f040();
 	void FUN_0046f420();
 	std::auto_ptr<XmlElement> FUN_0046ffa0();
-	HRESULT FUN_004700b0(const XmlElement* root, std::ostream& stream);
+	HRESULT FUN_004700b0(const XmlElement* root, std::ostream* stream);
+	HRESULT DoExecScript(LPCSTR script, VARIANT arg1, VARIANT arg2, VARIANT arg3, VARIANT arg4, SAFEARRAY** result);
 
 	boost::shared_ptr<RBX::DataModel> m_unk0x24;  // 0x24
 	boost::shared_ptr<RBX::RunService> m_unk0x2c; // 0x2c
 };
 
 DECOMP_SIZE_ASSERT(CWorkspace, 0x34)
+
+// clang-format off
+// TEMPLATE: ROBLOX 0x00403550
+// IObjectSafetyRobloxImpl<CWorkspace,1>::FUN_00408260
+// TEMPLATE: ROBLOX 0x00403e90
+// IObjectSafetyRobloxImpl<CWorkspace,1>::FUN_004085e0
+// TEMPLATE: ROBLOX 0x004050a0
+// IObjectSafetyRobloxImpl<CWorkspace,1>::GetInterfaceSafetyOptions
+// TEMPLATE: ROBLOX 0x00405130
+// IObjectSafetyRobloxImpl<CWorkspace,1>::SetInterfaceSafetyOptions
+// clang-format on
 
 #endif // WORKSPACE_H

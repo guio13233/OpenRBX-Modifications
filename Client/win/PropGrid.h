@@ -63,7 +63,8 @@ public:
 	virtual void FUN_00442e20(
 		const RBX::Reflection::ClassDescriptor* classDescriptor,
 		const RBX::Reflection::PropertyDescriptor* descriptor
-	); // vtable+0x160
+	);                                         // vtable+0x160
+	virtual RBX::Selection* VTable0x164() = 0; // vtable+0x164
 
 protected:
 	virtual void onEvent(const RBX::Instance* source, RBX::PropertyChanged event);
@@ -166,6 +167,8 @@ public:
 		return GetValue().IsEmpty();
 	}
 
+	const Descriptor* getDescriptor() const { return m_unk0x124; }
+
 protected:
 	T FUN_0043f1f0(RBX::Instance* instance);
 	void FUN_00443670(const T& value);
@@ -182,6 +185,66 @@ protected:
 // ?VTable0xe4@?$XItem@HVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@H@Reflection@RBX@@@@UAEHXZ
 // TEMPLATE: ROBLOX 0x0043ca00
 // ?VTable0xe4@?$XItem@VVector3@G3D@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VVector3@G3D@@@Reflection@RBX@@@@UAE?AVVector3@G3D@@XZ
+// TEMPLATE: ROBLOX 0x0043da80 FOLDED
+// ??1?$ContentItem@VSoundId@Soundscape@RBX@@@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043da80 FOLDED
+// ??1?$ContentItem@VTextureId@RBX@@@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043da80 FOLDED
+// ??1?$XItem@HVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@H@Reflection@RBX@@@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043da80 FOLDED
+// ??1?$XItem@MVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@M@Reflection@RBX@@@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043da80 FOLDED
+// ??1?$XItem@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VCXTPPropertyGridItem@@VPropertyDescriptor@Reflection@RBX@@@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043da80 FOLDED
+// ??1?$XItem@VSoundId@Soundscape@RBX@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VSoundId@Soundscape@RBX@@@Reflection@3@@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043da80 FOLDED
+// ??1?$XItem@VTextureId@RBX@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VTextureId@RBX@@@Reflection@2@@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043da80 FOLDED
+// ??1?$XItem@VVector3@G3D@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VVector3@G3D@@@Reflection@RBX@@@@UAE@XZ
+// SYNTHETIC: ROBLOX 0x0043da80 FOLDED
+// ??1RefItem@@UAE@XZ
+// SYNTHETIC: ROBLOX 0x0043da80 FOLDED
+// ??1ScriptItem@@UAE@XZ
+// SYNTHETIC: ROBLOX 0x0043da80 FOLDED
+// ??1SoundItem@@UAE@XZ
+// SYNTHETIC: ROBLOX 0x0043da80 FOLDED
+// ??1TextureItem@@UAE@XZ
+// SYNTHETIC: ROBLOX 0x0043da80 FOLDED
+// ??1Vector3ComponentItem@@UAE@XZ
+// SYNTHETIC: ROBLOX 0x0043da80 FOLDED
+// ??1Vector3Item@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043dac0 FOLDED
+// ??1?$XItem@HVCXTPPropertyGridItemEnum@@VEnumPropertyDescriptor@Reflection@RBX@@@@UAE@XZ
+// SYNTHETIC: ROBLOX 0x0043dac0 FOLDED
+// ??1EnumItem@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043dee0 FOLDED
+// ??1?$XItem@_NVCXTPPropertyGridItemBool@@V?$TypedPropertyDescriptor@_N@Reflection@RBX@@@@UAE@XZ
+// SYNTHETIC: ROBLOX 0x0043dee0 FOLDED
+// ??1XBoolItem@@UAE@XZ
+// TEMPLATE: ROBLOX 0x0043e2f0
+// ??$FUN_0043e6b0@VXBoolItem@@@CPropGrid@@AAEXPAVXBoolItem@@@Z
+// TEMPLATE: ROBLOX 0x0043e430 FOLDED
+// ??$FUN_0043e6b0@V?$XItem@VColor3@G3D@@VCXTPPropertyGridItemColor@@V?$TypedPropertyDescriptor@VColor3@G3D@@@Reflection@RBX@@@@@CPropGrid@@AAEXPAV?$XItem@VColor3@G3D@@VCXTPPropertyGridItemColor@@V?$TypedPropertyDescriptor@VColor3@G3D@@@Reflection@RBX@@@@@Z
+// TEMPLATE: ROBLOX 0x0043e430 FOLDED
+// ??$FUN_0043e6b0@VXBrickColorItem@@@CPropGrid@@AAEXPAVXBrickColorItem@@@Z
+// TEMPLATE: ROBLOX 0x0043e570
+// ??$FUN_0043e6b0@VEnumItem@@@CPropGrid@@AAEXPAVEnumItem@@@Z
+// TEMPLATE: ROBLOX 0x0043e6b0 FOLDED
+// ??$FUN_0043e6b0@V?$XItem@HVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@H@Reflection@RBX@@@@@CPropGrid@@AAEXPAV?$XItem@HVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@H@Reflection@RBX@@@@@Z
+// TEMPLATE: ROBLOX 0x0043e6b0 FOLDED
+// ??$FUN_0043e6b0@V?$XItem@MVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@M@Reflection@RBX@@@@@CPropGrid@@AAEXPAV?$XItem@MVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@M@Reflection@RBX@@@@@Z
+// TEMPLATE: ROBLOX 0x0043e6b0 FOLDED
+// ??$FUN_0043e6b0@V?$XItem@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VCXTPPropertyGridItem@@VPropertyDescriptor@Reflection@RBX@@@@@CPropGrid@@AAEXPAV?$XItem@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VCXTPPropertyGridItem@@VPropertyDescriptor@Reflection@RBX@@@@@Z
+// TEMPLATE: ROBLOX 0x0043e6b0 FOLDED
+// ??$FUN_0043e6b0@VRefItem@@@CPropGrid@@AAEXPAVRefItem@@@Z
+// TEMPLATE: ROBLOX 0x0043e6b0 FOLDED
+// ??$FUN_0043e6b0@VScriptItem@@@CPropGrid@@AAEXPAVScriptItem@@@Z
+// TEMPLATE: ROBLOX 0x0043e6b0 FOLDED
+// ??$FUN_0043e6b0@VSoundItem@@@CPropGrid@@AAEXPAVSoundItem@@@Z
+// TEMPLATE: ROBLOX 0x0043e6b0 FOLDED
+// ??$FUN_0043e6b0@VTextureItem@@@CPropGrid@@AAEXPAVTextureItem@@@Z
+// TEMPLATE: ROBLOX 0x0043e6b0 FOLDED
+// ??$FUN_0043e6b0@VVector3Item@@@CPropGrid@@AAEXPAVVector3Item@@@Z
 // TEMPLATE: ROBLOX 0x0043ec10
 // ??0?$XItem@_NVCXTPPropertyGridItemBool@@V?$TypedPropertyDescriptor@_N@Reflection@RBX@@@@QAE@ABV?$TypedPropertyDescriptor@_N@Reflection@RBX@@PAVCPropGrid@@@Z
 // TEMPLATE: ROBLOX 0x0043ecd0
@@ -250,15 +313,15 @@ protected:
 // ??0?$XItem@VVector3@G3D@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VVector3@G3D@@@Reflection@RBX@@@@QAE@ABV?$TypedPropertyDescriptor@VVector3@G3D@@@Reflection@RBX@@PAVCPropGrid@@@Z
 // TEMPLATE: ROBLOX 0x00440610
 // ?VTable0xec@?$XItem@VColor3@G3D@@VCXTPPropertyGridItemColor@@V?$TypedPropertyDescriptor@VColor3@G3D@@@Reflection@RBX@@@@UAE_NABVColor3@G3D@@0@Z
-// STUB: ROBLOX 0x004432b0
+// TEMPLATE: ROBLOX 0x004432b0
 // ?FUN_00443670@?$XItem@_NVCXTPPropertyGridItemBool@@V?$TypedPropertyDescriptor@_N@Reflection@RBX@@@@IAEXAB_N@Z
 // SYNTHETIC: ROBLOX 0x00442920
 // ??_E?$XItem@HVCXTPPropertyGridItemEnum@@VEnumPropertyDescriptor@Reflection@RBX@@@@UAEPAXI@Z
-// STUB: ROBLOX 0x00443670
+// TEMPLATE: ROBLOX 0x00443670
 // ?FUN_00443670@?$XItem@MVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@M@Reflection@RBX@@@@IAEXABM@Z
-// STUB: ROBLOX 0x00443a30
+// TEMPLATE: ROBLOX 0x00443a30
 // ?FUN_00443670@?$XItem@VColor3@G3D@@VCXTPPropertyGridItemColor@@V?$TypedPropertyDescriptor@VColor3@G3D@@@Reflection@RBX@@@@IAEXABVColor3@G3D@@@Z
-// STUB: ROBLOX 0x00443df0
+// TEMPLATE: ROBLOX 0x00443df0
 // ?FUN_00443670@?$XItem@HVCXTPPropertyGridItemEnum@@VEnumPropertyDescriptor@Reflection@RBX@@@@IAEXABH@Z
 // TEMPLATE: ROBLOX 0x00444560
 // ?OnValueChanged@?$XItem@_NVCXTPPropertyGridItemBool@@V?$TypedPropertyDescriptor@_N@Reflection@RBX@@@@UAEXV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@@Z
@@ -280,25 +343,25 @@ protected:
 // ?OnValueChanged@?$XItem@VSoundId@Soundscape@RBX@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VSoundId@Soundscape@RBX@@@Reflection@3@@@UAEXV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@@Z
 // TEMPLATE: ROBLOX 0x00445160 FOLDED
 // ?OnValueChanged@?$XItem@VTextureId@RBX@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VTextureId@RBX@@@Reflection@2@@@UAEXV?$CStringT@DV?$StrTraitMFC_DLL@DV?$ChTraitsCRT@D@ATL@@@@@ATL@@@Z
-// STUB: ROBLOX 0x0043ee90
+// TEMPLATE: ROBLOX 0x0043ee90
 // ?VTable0x00@?$XItem@_NVCXTPPropertyGridItemBool@@V?$TypedPropertyDescriptor@_N@Reflection@RBX@@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x0043f280
+// TEMPLATE: ROBLOX 0x0043f280
 // ?VTable0x00@?$XItem@MVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@M@Reflection@RBX@@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x0043f620
+// TEMPLATE: ROBLOX 0x0043f620
 // ?VTable0x00@?$XItem@HVCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@H@Reflection@RBX@@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x0043fa30
+// TEMPLATE: ROBLOX 0x0043fa30
 // ?VTable0x00@?$XItem@VColor3@G3D@@VCXTPPropertyGridItemColor@@V?$TypedPropertyDescriptor@VColor3@G3D@@@Reflection@RBX@@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x0043fe30
+// TEMPLATE: ROBLOX 0x0043fe30
 // ?VTable0x00@?$XItem@VBrickColor@RBX@@VCPropertyGridItemBrickColor@@V?$TypedPropertyDescriptor@VBrickColor@RBX@@@Reflection@2@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x00440270
+// TEMPLATE: ROBLOX 0x00440270
 // ?VTable0x00@?$XItem@V?$basic_string@DU?$char_traits@D@std@@V?$allocator@D@2@@std@@VCXTPPropertyGridItem@@VPropertyDescriptor@Reflection@RBX@@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x004406e0
+// TEMPLATE: ROBLOX 0x004406e0
 // ?VTable0x00@?$XItem@VVector3@G3D@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VVector3@G3D@@@Reflection@RBX@@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x00440b00
+// TEMPLATE: ROBLOX 0x00440b00
 // ?VTable0x00@?$XItem@HVCXTPPropertyGridItemEnum@@VEnumPropertyDescriptor@Reflection@RBX@@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x00440e50 FOLDED
+// TEMPLATE: ROBLOX 0x00440e50 FOLDED
 // ?VTable0x00@?$XItem@VSoundId@Soundscape@RBX@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VSoundId@Soundscape@RBX@@@Reflection@3@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
-// STUB: ROBLOX 0x00440e50 FOLDED
+// TEMPLATE: ROBLOX 0x00440e50 FOLDED
 // ?VTable0x00@?$XItem@VTextureId@RBX@@VCXTPPropertyGridItem@@V?$TypedPropertyDescriptor@VTextureId@RBX@@@Reflection@2@@@UAEXABV?$map@PBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@U?$less@PBVClassDescriptor@Reflection@RBX@@@5@V?$allocator@U?$pair@QBVClassDescriptor@Reflection@RBX@@V?$vector@V?$shared_ptr@VInstance@RBX@@@boost@@V?$allocator@V?$shared_ptr@VInstance@RBX@@@boost@@@std@@@std@@@std@@@5@@std@@@Z
 // clang-format on
 
@@ -393,7 +456,7 @@ DECOMP_SIZE_ASSERT(Vector3Item, 0x134)
 class RefItem : public XItem<std::string, CXTPPropertyGridItem, RBX::Reflection::PropertyDescriptor>
 {
 public:
-	RefItem(const RBX::Reflection::PropertyDescriptor& descriptor, CPropGrid* grid);
+	RefItem(const RBX::Reflection::RefPropertyDescriptor& descriptor, CPropGrid* grid);
 
 	virtual void OnValueChanged(CString strValue);
 	virtual void VTable0x00(
@@ -402,7 +465,7 @@ public:
 	);
 
 private:
-	const RBX::Reflection::PropertyDescriptor* m_unk0x128; // 0x128
+	const RBX::Reflection::RefPropertyDescriptor* m_unk0x128; // 0x128
 };
 
 DECOMP_SIZE_ASSERT(RefItem, 0x12c)
@@ -511,6 +574,9 @@ public:
 
 	// FUNCTION: ROBLOX 0x00434880
 	virtual ~CSelectionPropGrid() { FUN_00445580(NULL); }
+
+	// FUNCTION: ROBLOX 0x00434940
+	virtual RBX::Selection* VTable0x164() { return m_unk0x1e0.get(); }
 
 	void FUN_00445580(RBX::Selection* selection);
 

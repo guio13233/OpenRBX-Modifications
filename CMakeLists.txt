@@ -686,8 +686,17 @@ if (MSVC_FOR_DECOMP)
     Client/win/DHTMLWindow.cpp
     Client/win/DxUserInput.cpp
     Client/win/ErrorUploader.cpp
+    Client/win/InsertObjectDialog.cpp
     Client/win/InstanceExplorer.cpp
     Client/win/LogManager.cpp
+    Client/win/LuaHtmlView.cpp
+    Client/win/LDraw2RobloxColorMap.cpp
+    Client/win/LDraw2RobloxMapRoot.cpp
+    Client/win/LDraw2RobloxPartMap.cpp
+    Client/win/LDrawCommand.cpp
+    Client/win/LDrawParser.cpp
+    Client/win/LuaFunction.cpp
+    Client/win/LuaWriter.cpp
     Client/win/MainFrm.cpp
     Client/win/MarshalWindow.cpp
     Client/win/MultiPlayerPane.cpp

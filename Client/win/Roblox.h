@@ -68,6 +68,7 @@ public:
 	void FUN_0044e250();
 	BOOL FUN_0044ea70(std::string script);
 	void FUN_0044ef90(boost::shared_ptr<RBX::Script> script);
+	CDocument* FUN_0044fbc0();
 	void FUN_004509e0();
 	BOOL FUN_00451550(std::vector<std::string>::iterator begin, std::vector<std::string>::iterator end);
 
@@ -81,6 +82,9 @@ public:
 	afx_msg void FUN_0044d450(WPARAM p_unk0x04, LPARAM p_unk0x08);
 
 	DECLARE_MESSAGE_MAP()
+
+	// SYNTHETIC: ROBLOX 0x004518f0
+	// ?GetMessageMap@CRobloxApp@@MBEPBUAFX_MSGMAP@@XZ
 
 	friend class CApp;
 
@@ -137,6 +141,8 @@ protected:
 	void OnLButtonUp(CPoint point);                                 // vtable+0xec
 
 private:
+	friend class CPropertyGridItemBrickColor;
+
 	CRect GetRect(int nIndex) const;
 	int HitTest(CPoint point) const;
 

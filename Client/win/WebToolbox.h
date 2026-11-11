@@ -28,11 +28,30 @@ public:
 
 	void FUN_0046ea00(int category);
 
+	virtual void OnInitialUpdate();
+	virtual HRESULT OnGetExternal(LPDISPATCH* lppDispatch);
+	virtual HRESULT OnDocWindowActivate(BOOL fActivate);
+	virtual HRESULT OnFrameWindowActivate(BOOL fActivate);
+
 	// SYNTHETIC: ROBLOX 0x0046ec50
 	// CWebToolbox::`scalar deleting destructor'
 
 	// SYNTHETIC: ROBLOX 0x0046ecd0
 	// ?CreateObject@CWebToolbox@@SGPAVCObject@@XZ
+
+protected:
+	virtual void OnActivateView(BOOL bActivate, CView* pActivateView, CView* pDeactiveView);
+
+	afx_msg void OnSetFocus(CWnd* pOldWnd);
+	afx_msg int OnMouseActivate(CWnd* pDesktopWnd, UINT nHitTest, UINT message);
+	afx_msg void OnGetMinMaxInfo(MINMAXINFO* lpMMI);
+	afx_msg void OnLButtonDown(UINT nFlags, CPoint point);
+	afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
+
+	DECLARE_MESSAGE_MAP()
+
+	// SYNTHETIC: ROBLOX 0x0046ed50
+	// ?GetMessageMap@CWebToolbox@@MBEPBUAFX_MSGMAP@@XZ
 
 private:
 	friend class CRobloxView;

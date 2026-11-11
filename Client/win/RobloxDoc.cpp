@@ -2,6 +2,7 @@
 
 #include "ActiveDocView.h"
 #include "InstanceExplorer.h"
+#include "LDrawParser.h"
 #include "LogManager.h"
 #include "MainFrm.h"
 #include "SaveToRobloxDialog.h"
@@ -9,6 +10,7 @@
 #include "script/LuaMemory.h"
 #include "script/ScriptContext.h"
 #include "util/ContentProvider.h"
+#include "util/FileSystem.h"
 #include "util/Log.h"
 #include "util/RunStateOwner.h"
 #include "util/StandardOut.h"
@@ -17,6 +19,7 @@
 #include "v8datamodel/Visit.h"
 #include "v8datamodel/Workspace.h"
 #include "v8xml/SerializerV2.h"
+#include "v8xml/XmlSerializer.h"
 
 #include <boost/iostreams/copy.hpp>
 #include <shlobj.h>
@@ -44,6 +47,13 @@ static T* findService(RBX::DataModel* dataModel)
 	return dataModel ? dataModel->find<T>() : NULL;
 }
 
+static UINT clipboardFormat()
+{
+	static UINT format = RegisterClipboardFormat("Roblox");
+
+	return format;
+}
+
 // FUNCTION: ROBLOX 0x0040ffc0
 void CutVerb::doIt(RBX::IDataState* dataState)
 {
@@ -54,9 +64,7 @@ void CutVerb::doIt(RBX::IDataState* dataState)
 // FUNCTION: ROBLOX 0x00412120
 bool PasteVerb::isEnabled() const
 {
-	static UINT format = RegisterClipboardFormat("Roblox");
-
-	if (IsClipboardFormatAvailable(format) != TRUE) {
+	if (IsClipboardFormatAvailable(clipboardFormat()) != TRUE) {
 		return false;
 	}
 
@@ -67,16 +75,76 @@ bool PasteVerb::isEnabled() const
 	return (m_unk0x0c ? m_unk0x0c->create<RBX::Selection>() : NULL)->size() == 1;
 }
 
-// STUB: ROBLOX 0x004121a0
+// FUNCTION: ROBLOX 0x004121a0
 void PasteVerb::doIt(RBX::IDataState* dataState)
 {
-	STUB(0x4121a0);
+	if (m_unk0x0c->findFirstChildByName("NetworkClient")) {
+		return;
+	}
+
+	if (!AfxGetMainWnd()->OpenClipboard()) {
+		return;
+	}
+
+	HANDLE handle = GetClipboardData(clipboardFormat());
+	const char* text = static_cast<const char*>(GlobalLock(handle));
+	std::vector<boost::shared_ptr<RBX::Instance> > instances;
+	{
+		std::istringstream stream(text);
+		TextXmlParser machine(stream.rdbuf());
+		std::auto_ptr<XmlElement> root(machine.parse());
+
+		RBX::Selection* selection = createService<RBX::Selection>(m_unk0x0c);
+		RBX::Instance* parent =
+			m_unk0x10 && selection->size() == 1 ? selection->front().get() : m_unk0x0c->getWorkspace();
+		RBX::InsertMode insertMode = m_unk0x10 ? RBX::INSERT_TO_TREE : RBX::INSERT_TO_3D_VIEW;
+		SerializerV2 serializer;
+		serializer.loadInstances(root.get(), instances);
+		m_unk0x0c->getWorkspace()->insertInstances(instances, parent, insertMode, RBX::SUPPRESS_PROMPTS);
+
+		const std::vector<boost::shared_ptr<RBX::Instance> >& items = instances;
+		selection->setSelection(items.begin(), items.end());
+	}
+
+	GlobalUnlock(handle);
+	CloseClipboard();
+
+	RBX::XmlState* undoState = new RBX::UndoState();
+	RBX::XmlState* redoState = new RBX::RedoState();
+	for (std::vector<boost::shared_ptr<RBX::Instance> >::iterator iter = instances.begin(); iter != instances.end();
+		 ++iter) {
+		undoState->addDelete(*iter->get());
+		redoState->addParentProperty(*iter->get());
+	}
+
+	dataState->pushState(getName(), undoState, redoState);
+	dataState->setDirty(true);
 }
 
-// STUB: ROBLOX 0x004125e0
+// FUNCTION: ROBLOX 0x004125e0
 void CopyVerb::doIt(RBX::IDataState* dataState)
 {
-	STUB(0x4125e0);
+	XmlElement* root = SerializerV2::newRootElement();
+	RBX::Selection* selection = createService<RBX::Selection>(dataModel);
+	std::for_each(selection->begin(), selection->end(), boost::bind(&RBX::FUN_00597490, root, _1));
+
+	std::ostringstream stream;
+	TextXmlWriter writer(stream);
+	writer.serialize(root);
+	delete root;
+
+	if (AfxGetMainWnd()->OpenClipboard()) {
+		EmptyClipboard();
+
+		std::string text = stream.str();
+		HGLOBAL handle = GlobalAlloc(GMEM_MOVEABLE, text.length() + 1);
+		char* buffer = static_cast<char*>(GlobalLock(handle));
+		strcpy(buffer, text.c_str());
+		GlobalUnlock(handle);
+
+		SetClipboardData(clipboardFormat(), handle);
+		CloseClipboard();
+	}
 }
 
 // FUNCTION: ROBLOX 0x00453ed0
@@ -203,6 +271,85 @@ void CRobloxDoc::FUN_00454a60()
 	dialog.DoModal();
 }
 
+// STUB: ROBLOX 0x00454b50
+CString CRobloxDoc::FUN_00454b50(CRobloxDoc* doc, const char* name)
+{
+	CString path;
+	GetShortPathName(
+		RBX::FileSystem::getUserAppDataDirectory(true, "Test").c_str(), path.GetBuffer(MAX_PATH), MAX_PATH
+	);
+	path.ReleaseBuffer();
+	path += name;
+	path += ".rbxl";
+
+	if (doc->m_unk0x78->SaveToFile(CComBSTR(path)) != S_OK) {
+		throw std::runtime_error("Failed to copy document");
+	}
+
+	return path;
+}
+
+// FUNCTION: ROBLOX 0x00454cb0
+static void FUN_00454cb0(const char* file, const char* arguments)
+{
+	CString folder;
+	if (SHGetFolderPath(NULL, CSIDL_COMMON_DOCUMENTS, NULL, SHGFP_TYPE_CURRENT, folder.GetBuffer(MAX_PATH))) {
+		throw std::runtime_error("Unable to get common document folder");
+	}
+	folder.ReleaseBuffer();
+
+	CString module;
+	AfxGetModuleShortFileName(AfxGetApp()->m_hInstance, module);
+
+	CString parameters;
+	if (file) {
+		parameters += file;
+	}
+	if (arguments) {
+		parameters += arguments;
+	}
+
+	if ((UINT_PTR) ShellExecute(AfxGetMainWnd()->m_hWnd, "open", module, parameters, folder, SW_SHOW) <= 32) {
+		throw std::runtime_error("ShellExecute failed");
+	}
+}
+
+// FUNCTION: ROBLOX 0x00454e50
+void CRobloxDoc::FUN_00454e50()
+{
+	try {
+		FUN_00454cb0(FUN_00454b50(this, "Visit"), " -script " + FUN_00407190() + "/game/visit.ashx");
+	}
+	catch (std::exception& e) {
+		AfxMessageBox(e.what());
+	}
+}
+
+// FUNCTION: ROBLOX 0x00454f50
+void CRobloxDoc::FUN_00454f50()
+{
+	try {
+		FUN_00454cb0(FUN_00454b50(this, "Server"), " -script " + FUN_00407190() + "/game/gameserver.ashx");
+		FUN_00454cb0(NULL, " -script " + FUN_00407190() + "/game/join.ashx");
+	}
+	catch (std::exception& e) {
+		AfxMessageBox(e.what());
+	}
+}
+
+// FUNCTION: ROBLOX 0x004550b0
+void CRobloxDoc::FUN_004550b0()
+{
+	try {
+		FUN_00454cb0(FUN_00454b50(this, "Server"), " -script " + FUN_00407190() + "/game/gameserver.ashx");
+		FUN_00454cb0(NULL, " -script " + FUN_00407190() + "/game/join.ashx");
+		FUN_00454cb0(NULL, " -script " + FUN_00407190() + "/game/join.ashx?UserID=0&port=4344");
+	}
+	catch (std::exception& e) {
+		AfxMessageBox(e.what());
+	}
+}
+
 // FUNCTION: ROBLOX 0x004558a0
 RBX::VerbContainer* CRobloxDoc::FUN_004558a0()
 {
@@ -277,15 +424,18 @@ void CRobloxDoc::FUN_004561a0()
 	}
 }
 
-// STUB: ROBLOX 0x004564b0
+// FUNCTION: ROBLOX 0x004564b0
 void CRobloxDoc::DeleteContents()
 {
 	{
 		RBX::DataModel::Lock lock(FUN_00403290());
-		for (std::vector<RBX::Verb*>::iterator it = m_unk0x64.begin(), end = m_unk0x64.end(); it != end; ++it) {
+		std::vector<RBX::Verb*>::iterator it = m_unk0x64.begin();
+		std::vector<RBX::Verb*>::iterator end = m_unk0x64.end();
+		while (it != end) {
 			delete *it;
+			++it;
 		}
-		m_unk0x64.erase(m_unk0x64.begin(), m_unk0x64.end());
+		m_unk0x64.clear();
 		m_unk0x74.reset();
 	}
 
@@ -320,25 +470,27 @@ void CRobloxDoc::FUN_00455ff0(CCmdUI* pCmdUI)
 	}
 }
 
-// STUB: ROBLOX 0x00456c00
+// FUNCTION: ROBLOX 0x00456c00
 void CRobloxDoc::FUN_00456c00(int id, RBX::Verb* verb)
 {
-	const RBX::Name* name = verb ? &verb->getName() : &RBX::Name::getNullName();
-	m_unk0x58[id] = name;
-}
-
-// STUB: ROBLOX 0x00456c50
-void CRobloxDoc::FUN_00456c50(int id, RBX::Verb* verb)
-{
-	const RBX::Name* name;
 	if (verb) {
-		m_unk0x64.push_back(verb);
-		name = &verb->getName();
+		const RBX::Name* name = &verb->getName();
+		m_unk0x58[id] = name;
 	}
 	else {
-		name = &RBX::Name::getNullName();
+		const RBX::Name* name = &RBX::Name::getNullName();
+		m_unk0x58[id] = name;
 	}
-	m_unk0x58[id] = name;
+}
+
+// FUNCTION: ROBLOX 0x00456c50
+void CRobloxDoc::FUN_00456c50(int id, RBX::Verb* verb)
+{
+	if (verb) {
+		m_unk0x64.push_back(verb);
+	}
+
+	FUN_00456c00(id, verb);
 }
 
 // FUNCTION: ROBLOX 0x00456cb0
@@ -419,26 +571,28 @@ void CRobloxDoc::FUN_00456d30()
 	FUN_00456c00(0x807c, &m_unk0x74->m_unk0x52c);
 }
 
-// STUB: ROBLOX 0x00457910
+// FUNCTION: ROBLOX 0x00457910
 BOOL CRobloxDoc::OnOpenDocument(LPCTSTR lpszPathName)
 {
 	char cachePath[MAX_PATH];
 	if (SHGetFolderPath(NULL, CSIDL_INTERNET_CACHE, NULL, 0, cachePath) == S_OK) {
 		CString relativePath;
-		BOOL relative =
-			PathRelativePathTo(relativePath.GetBuffer(MAX_PATH), cachePath, FILE_ATTRIBUTE_DIRECTORY, lpszPathName, 0);
+		LPTSTR buffer = relativePath.GetBuffer(MAX_PATH);
+		BOOL relative = PathRelativePathTo(buffer, cachePath, FILE_ATTRIBUTE_DIRECTORY, lpszPathName, 0);
 		relativePath.ReleaseBuffer();
 
-		if (relative && relativePath.Left(2).Compare(".\\") == 0) {
-			return FALSE;
+		if (relative) {
+			if (relativePath.Left(2).Compare(".\\") == 0) {
+				return FALSE;
+			}
 		}
 	}
 
-	try {
-		DeleteContents();
-		FUN_00456d30();
-		SetModifiedFlag(TRUE);
+	DeleteContents();
+	FUN_00456d30();
+	SetModifiedFlag(TRUE);
 
+	try {
 		std::auto_ptr<std::istream> stream =
 			RBX::ContentProvider::singleton().getContent(RBX::ContentId::fromFile(lpszPathName));
 		m_unk0x78->FUN_0046ef00(*stream);
@@ -495,24 +649,24 @@ void CRobloxDoc::FUN_00458750(CCmdUI* pCmdUI)
 	pCmdUI->Enable(selection->size() > 0);
 }
 
-// STUB: ROBLOX 0x004588a0
+// FUNCTION: ROBLOX 0x004588a0
 void CRobloxDoc::FUN_004588a0(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	CXTPControlComboBox* pControl = (CXTPControlComboBox*) ((NMXTPCONTROL*) pNMHDR)->pControl;
 	if (pControl->GetType() == xtpControlComboBox) {
 		std::string text(pControl->GetEditText());
 
-		try {
-			if (pControl->FindStringExact(-1, text.c_str()) == -1) {
-				pControl->InsertString(0, text.c_str());
-				if (pControl->GetCount() > 10) {
-					pControl->DeleteItem(pControl->GetCount() - 1);
-				}
+		if (pControl->FindString(-1, text.c_str()) == -1) {
+			pControl->InsertString(0, text.c_str());
+			if (pControl->GetCount() > 10) {
+				pControl->DeleteItem(pControl->GetCount() - 1);
 			}
+		}
 
-			pControl->SetEnabled(FALSE);
-			RBX::StandardOut::singleton()->print(RBX::MESSAGE_OUTPUT, "> %s", text.c_str());
+		pControl->SetEnabled(FALSE);
+		RBX::StandardOut::singleton()->print(RBX::MESSAGE_OUTPUT, "> %s", text.c_str());
 
+		try {
 			if (RBX::ContentProvider::isHttpUrl(text)) {
 				std::auto_ptr<std::istream> stream = RBX::ContentProvider::singleton().getContent(RBX::ContentId(text));
 				std::ostringstream script;
@@ -525,7 +679,7 @@ void CRobloxDoc::FUN_004588a0(NMHDR* pNMHDR, LRESULT* pResult)
 				RBX::Security::CmdLine, text.c_str(), "Cmd"
 			);
 		}
-		catch (...) {
+		catch (std::exception&) {
 		}
 
 		pControl->SetEnabled(TRUE);
@@ -559,18 +713,19 @@ void CRobloxDoc::FUN_00458f60(CCmdUI* pCmdUI)
 	pCmdUI->Enable(!runService->runDisabled && !runService->isRunState());
 }
 
-// STUB: ROBLOX 0x004590a0
+// FUNCTION: ROBLOX 0x004590a0
 void CRobloxDoc::FUN_004590a0(CCmdUI* pCmdUI)
 {
 	if (FUN_00403290()) {
 		RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
-		if (FUN_00403290()->create<RBX::RunService>()->getRunState() == RBX::RS_RUNNING) {
+		RBX::RunState runState = FUN_00403290()->create<RBX::RunService>()->getRunState();
+		if (runState != RBX::RS_RUNNING) {
+			pCmdUI->SetText("");
+		}
+		else {
 			char text[32];
 			sprintf(text, "%.3gfps", FUN_00403290()->timeState->simulationStopwatch.smoothFPS());
 			pCmdUI->SetText(text);
-		}
-		else {
-			pCmdUI->SetText("");
 		}
 	}
 }
@@ -640,7 +795,7 @@ void CRobloxDoc::FUN_00459790(CCmdUI* pCmdUI)
 	}
 }
 
-// STUB: ROBLOX 0x00459950
+// FUNCTION: ROBLOX 0x00459950
 BOOL CRobloxDoc::FUN_00459950(std::string fileName)
 {
 	if (RBX::ContentProvider::isHttpUrl(fileName.c_str())) {
@@ -665,12 +820,11 @@ BOOL CRobloxDoc::FUN_00459950(std::string fileName)
 		FUN_00403290()->create<RBX::ScriptContext>()->executeInNewThread(
 			RBX::Security::LocalGUI, script, fileName.c_str(), arguments
 		);
+		return TRUE;
 	}
 	catch (std::exception&) {
 		return FALSE;
 	}
-
-	return TRUE;
 }
 
 // FUNCTION: ROBLOX 0x00459c80
@@ -682,6 +836,33 @@ void CRobloxDoc::FUN_00459c80()
 	CFileDialog dialog(TRUE, "lua", NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, filter);
 	if (dialog.DoModal() == IDOK) {
 		FUN_00459950(static_cast<LPCTSTR>(dialog.GetPathName()));
+	}
+}
+
+// FUNCTION: ROBLOX 0x00459da0
+void CRobloxDoc::FUN_00459da0()
+{
+	CString filter;
+	filter.LoadString(141);
+
+	CFileDialog dialog(TRUE, "ldr", NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, filter);
+	if (dialog.DoModal() == IDOK) {
+		RBX::LDraw2Lua::LDrawParser parser(dialog.GetPathName());
+		std::ostringstream stream;
+		parser.FUN_00473a80(stream);
+		stream.flush();
+
+		try {
+			RBX::DataModel::Lock lock(m_unk0x78->FUN_0046edc0());
+			std::vector<RBX::Reflection::Value> arguments;
+			std::string script = stream.str();
+			FUN_00403290()->create<RBX::ScriptContext>()->executeInNewThread(
+				RBX::Security::LocalGUI, script.c_str(), "LDraw", arguments
+			);
+		}
+		catch (std::exception& e) {
+			AfxMessageBox(e.what(), MB_ICONERROR);
+		}
 	}
 }
 
@@ -774,8 +955,16 @@ BEGIN_MESSAGE_MAP(CRobloxDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(0xbe, FUN_004590a0)
 	ON_COMMAND(0x80f1, FUN_00459c80)
 	ON_UPDATE_COMMAND_UI(0x80f1, FUN_00453eb0)
+	ON_COMMAND(0x80f8, FUN_00459da0)
+	ON_UPDATE_COMMAND_UI(0x80f8, FUN_00453eb0)
 	ON_COMMAND(0x8100, FUN_00454a60)
 	ON_UPDATE_COMMAND_UI(0x8100, FUN_0045a0b0)
+	ON_COMMAND(0x8104, FUN_00454e50)
+	ON_UPDATE_COMMAND_UI(0x8104, FUN_00453eb0)
+	ON_UPDATE_COMMAND_UI(0x8105, FUN_00453eb0)
+	ON_COMMAND(0x8105, FUN_00454f50)
+	ON_COMMAND(0x8106, FUN_004550b0)
+	ON_UPDATE_COMMAND_UI(0x8106, FUN_00453eb0)
 	ON_COMMAND(0x8021, FUN_004561a0)
 	ON_COMMAND(0x8025, FUN_00454430)
 	ON_UPDATE_COMMAND_UI(0x8025, FUN_00458750)

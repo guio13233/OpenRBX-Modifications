@@ -33,7 +33,7 @@ struct ChildAdded
 	const boost::shared_ptr<Instance> child; // 0x00
 
 	ChildAdded(Instance* child);
-	ChildAdded(const ChildAdded& other) : child(other.child) {}
+	ChildAdded(const ChildAdded& other);
 
 private:
 	ChildAdded& operator=(const ChildAdded& other);
@@ -45,7 +45,7 @@ struct ChildRemoved
 	const boost::shared_ptr<Instance> child; // 0x00
 
 	ChildRemoved(Instance* child);
-	ChildRemoved(const ChildRemoved& other) : child(other.child) {}
+	ChildRemoved(const ChildRemoved& other);
 
 private:
 	ChildRemoved& operator=(const ChildRemoved& other);
@@ -357,6 +357,8 @@ public:
 	}
 
 	// clang-format off
+	// TEMPLATE: ROBLOX 0x0044fd70
+	// ??$visitChildren@P6AXV?$shared_ptr@VInstance@RBX@@@boost@@@Z@Instance@RBX@@QBEXP6AXV?$shared_ptr@VInstance@RBX@@@boost@@@Z@Z
 	// TEMPLATE: WEBSERVICE 0x1016ee10
 	// TEMPLATE: ROBLOX 0x00479c30
 	// RBX::Instance::visitChildren<boost::_bi::bind_t<void,boost::_mfi::mf1<void,RBX::View::PartChunk,boost::shared_ptr<RBX::Instance> >,boost::_bi::list2<boost::_bi::value<RBX::View::PartChunk *>,boost::arg<1> > > >
@@ -597,7 +599,7 @@ template <class T, class Base, const char* sName>
 	// TEMPLATE: ROBLOX 0x00572460
 	// RBX::DescribedNonCreatable<RBX::Stats::Item,RBX::Instance,&RBX::Stats::sStatsItem>::DescribedNonCreatable<RBX::Stats::Item,RBX::Instance,&RBX::Stats::sStatsItem><char const *>
 	// TEMPLATE: WEBSERVICE 0x100653c0
-	// STUB: ROBLOX 0x0045ca30
+	// TEMPLATE: ROBLOX 0x0045ca30
 	// RBX::DescribedNonCreatable<RBX::Stats::StatsService,RBX::Instance,&RBX::Stats::sStats>::DescribedNonCreatable<RBX::Stats::StatsService,RBX::Instance,&RBX::Stats::sStats><char const *>
 	// FUNCTION: WEBSERVICE 0x10065660
 	// FUNCTION: ROBLOX 0x005725b0

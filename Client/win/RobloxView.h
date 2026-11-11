@@ -113,6 +113,9 @@ class CRobloxView : public VerbBinder<CRobloxView, CView>,
 	// SYNTHETIC: ROBLOX 0x0045e5c0
 	// ?CreateObject@CRobloxView@@SGPAVCObject@@XZ
 
+	// SYNTHETIC: ROBLOX 0x0045f290
+	// ?GetMessageMap@CRobloxView@@MBEPBUAFX_MSGMAP@@XZ
+
 protected:
 	CRobloxView();
 
@@ -127,6 +130,7 @@ public:
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnDestroy();
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
+	afx_msg void FUN_0045d8c0(CCmdUI* pCmdUI);
 
 	void FUN_0045d920();
 	void FUN_0045da90(int p_unk0x04);
@@ -144,7 +148,7 @@ public:
 
 	boost::shared_ptr<RBX::DataModel> FUN_00403290() const;
 	void FUN_0045e900();
-	RBX::VerbContainer* FUN_004558a0() { return this; }
+	CRobloxView* FUN_004558a0() { return this; }
 
 protected:
 	virtual void onEvent(const RBX::ServiceProvider* source, RBX::ServiceAdded event);

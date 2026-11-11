@@ -34,6 +34,12 @@ char sEvents[] = "ReflectionMetadataEvents";
 // GLOBAL: ROBLOX 0x00919d14
 char sMember[] = "ReflectionMetadataMember";
 
+// FUNCTION: ROBLOX 0x00446000
+bool Members::askAddChild(const Instance* instance) const
+{
+	return dynamic_cast<const Member*>(instance) != NULL;
+}
+
 // FUNCTION: ROBLOX 0x00446130
 Class* Classes::FUN_00446130(const ClassDescriptor* descriptor, bool recurse)
 {
@@ -52,6 +58,45 @@ Class* Reflection::FUN_00446220(const ClassDescriptor* descriptor, bool recurse)
 {
 	if (m_unk0xf8) {
 		return m_unk0xf8->FUN_00446130(descriptor, recurse);
+	}
+	return NULL;
+}
+
+// FUNCTION: ROBLOX 0x00446920
+Member* Reflection::FUN_00446920(const PropertyDescriptor* descriptor)
+{
+	Class* item = m_unk0xf8 ? m_unk0xf8->FUN_00446130(&descriptor->owner, false) : NULL;
+	if (item) {
+		Properties* members = item->findFirstChildOfType<Properties>();
+		if (members) {
+			return static_cast<Member*>(members->findFirstChildByName(descriptor->name.toString()));
+		}
+	}
+	return NULL;
+}
+
+// FUNCTION: ROBLOX 0x00446970
+Member* Reflection::FUN_00446970(const FunctionDescriptor* descriptor)
+{
+	Class* item = m_unk0xf8 ? m_unk0xf8->FUN_00446130(&descriptor->owner, false) : NULL;
+	if (item) {
+		Functions* members = item->findFirstChildOfType<Functions>();
+		if (members) {
+			return static_cast<Member*>(members->findFirstChildByName(descriptor->name.toString()));
+		}
+	}
+	return NULL;
+}
+
+// FUNCTION: ROBLOX 0x004469c0
+Member* Reflection::FUN_004469c0(const SignalDescriptor* descriptor)
+{
+	Class* item = m_unk0xf8 ? m_unk0xf8->FUN_00446130(&descriptor->owner, false) : NULL;
+	if (item) {
+		Events* members = item->findFirstChildOfType<Events>();
+		if (members) {
+			return static_cast<Member*>(members->findFirstChildByName(descriptor->name.toString()));
+		}
 	}
 	return NULL;
 }

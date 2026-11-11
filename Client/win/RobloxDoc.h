@@ -143,6 +143,7 @@ public:
 	virtual BOOL DoSave(LPCTSTR lpszPathName, BOOL bReplace = TRUE);
 	BOOL FUN_00459950(std::string p_unk0x04);
 	void FUN_00459c80();
+	void FUN_00459da0();
 
 protected:
 	afx_msg void FUN_00453eb0(CCmdUI* pCmdUI);
@@ -150,6 +151,9 @@ protected:
 	afx_msg void FUN_00454920();
 	afx_msg void FUN_004549c0();
 	afx_msg void FUN_00454a60();
+	afx_msg void FUN_00454e50();
+	afx_msg void FUN_00454f50();
+	afx_msg void FUN_004550b0();
 	afx_msg void FUN_00455900();
 	afx_msg void FUN_00455a30(CCmdUI* pCmdUI);
 	afx_msg void FUN_00455bb0();
@@ -171,7 +175,12 @@ protected:
 	afx_msg void FUN_0045a730();
 	afx_msg void FUN_0045a9e0();
 
+	static CString FUN_00454b50(CRobloxDoc* doc, const char* name);
+
 	DECLARE_MESSAGE_MAP()
+
+	// SYNTHETIC: ROBLOX 0x0045abf0
+	// ?GetMessageMap@CRobloxDoc@@MBEPBUAFX_MSGMAP@@XZ
 
 private:
 	friend class CRobloxView;
@@ -179,7 +188,9 @@ private:
 	std::auto_ptr<XmlElement> m_unk0x60;               // 0x60
 	std::vector<RBX::Verb*> m_unk0x64;                 // 0x64
 	boost::scoped_ptr<RBX::Unknown005d2700> m_unk0x74; // 0x74
-	CComObject<CWorkspace>* m_unk0x78;                 // 0x78
+
+public:
+	CComObject<CWorkspace>* m_unk0x78; // 0x78
 };
 
 DECOMP_SIZE_ASSERT(CRobloxDoc, 0x7c)

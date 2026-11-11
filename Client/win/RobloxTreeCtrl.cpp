@@ -26,6 +26,9 @@ public:
 
 DECOMP_SIZE_ASSERT(RootNode, 0x50)
 
+IMPLEMENT_DYNAMIC(CRobloxTreeCtrl, CXTTreeCtrl)
+IMPLEMENT_DYNAMIC(CSelectionTreeCtrl, CRobloxTreeCtrl)
+
 // FUNCTION: ROBLOX 0x004221a0
 void CRobloxTreeCtrlNode::FUN_004221a0()
 {
@@ -68,6 +71,8 @@ void CSelectionTreeCtrl::FUN_00422230(NMHDR* pNMHDR, LRESULT* pResult)
 class CEnabledCmdUI : public CCmdUI
 {
 public:
+	CEnabledCmdUI() : m_unk0x28(FALSE) {}
+
 	// FUNCTION: ROBLOX 0x00422250
 	virtual void Enable(BOOL bOn = TRUE)
 	{
@@ -84,7 +89,7 @@ public:
 
 DECOMP_SIZE_ASSERT(CEnabledCmdUI, 0x2c)
 
-// STUB: ROBLOX 0x00422270
+// FUNCTION: ROBLOX 0x00422270
 void CSelectionTreeCtrl::FUN_00422270(CPoint point)
 {
 	CMenu* popup = m_unk0xc4.GetSubMenu(0);
@@ -123,6 +128,50 @@ void CSelectionTreeCtrl::FUN_00422270(CPoint point)
 void CSelectionTreeCtrl::OnContextMenu(CWnd* pWnd, CPoint point)
 {
 	FUN_00422270(point);
+}
+
+// FUNCTION: ROBLOX 0x00422420
+BOOL CSelectionTreeCtrl::OnButtonDown(BOOL bLeft, UINT nFlags, CPoint point)
+{
+	return CXTTreeBase::OnButtonDown(bLeft, nFlags, point);
+}
+
+// FUNCTION: ROBLOX 0x00422440
+void CSelectionTreeCtrl::DoPreSelection(HTREEITEM hItem, BOOL bLeft, UINT nFlags)
+{
+	CXTTreeBase::DoPreSelection(hItem, bLeft, nFlags);
+}
+
+// FUNCTION: ROBLOX 0x00422450
+void CSelectionTreeCtrl::DoAction(HTREEITEM hItem, BOOL bLeft, UINT nFlags, CPoint point)
+{
+	CXTTreeBase::DoAction(hItem, bLeft, nFlags, point);
+}
+
+// FUNCTION: ROBLOX 0x00422480
+void CSelectionTreeCtrl::DoBanding(UINT nFlags, CPoint point)
+{
+	CXTTreeBase::DoBanding(nFlags, point);
+}
+
+// FUNCTION: ROBLOX 0x004224a0
+void CSelectionTreeCtrl::UpdateSelectionForRect(LPCRECT pRect, UINT nFlags, CTypedPtrList<CPtrList, HTREEITEM>& list)
+{
+	CXTTreeBase::UpdateSelectionForRect(pRect, nFlags, list);
+}
+
+// FUNCTION: ROBLOX 0x004224b0
+BOOL CSelectionTreeCtrl::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* pHandlerInfo)
+{
+	if (CRobloxTreeCtrl::OnCmdMsg(nID, nCode, pExtra, pHandlerInfo)) {
+		return TRUE;
+	}
+
+	if (!g_unk0x00952d8c) {
+		return FALSE;
+	}
+
+	return g_unk0x00952d8c->OnCmdMsg(nID, nCode, pExtra, pHandlerInfo);
 }
 
 // FUNCTION: ROBLOX 0x00422ae0
@@ -249,37 +298,39 @@ void CSelectionTreeCtrl::FUN_004232d0(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
-// STUB: ROBLOX 0x00423330
+// FUNCTION: ROBLOX 0x00423330
 int CRobloxTreeCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
 	if (CXTTreeCtrl::OnCreate(lpCreateStruct) == -1) {
 		return -1;
 	}
 
-	Init();
+	{
+		BOOL alpha = FALSE;
+		HBITMAP handle = CXTPImageManagerIcon::LoadBitmapFromResource(MAKEINTRESOURCE(0x85), &alpha);
+		CBitmap bitmap;
+		bitmap.Attach(handle);
 
-	BOOL alpha = FALSE;
-	CBitmap bitmap;
-	bitmap.Attach(CXTPImageManagerIcon::LoadBitmapFromResource(MAKEINTRESOURCE(0x85), &alpha));
+		if (alpha) {
+			if (!m_unk0xa8.Create(16, 16, ILC_COLOR32, 0, 0)) {
+				return -1;
+			}
+			if (m_unk0xa8.Add(&bitmap, &bitmap) == -1) {
+				return -1;
+			}
+		}
+		else {
+			if (!m_unk0xa8.Create(16, 16, ILC_COLORDDB | ILC_MASK, 0, 0)) {
+				return -1;
+			}
+			if (m_unk0xa8.Add(&bitmap, RGB(255, 0, 255)) == -1) {
+				return -1;
+			}
+		}
 
-	if (alpha) {
-		if (!m_unk0xa8.Create(16, 16, ILC_COLOR32, 0, 0)) {
-			return -1;
-		}
-		if (m_unk0xa8.Add(&bitmap, (CBitmap*) NULL) == -1) {
-			return -1;
-		}
+		SetImageList(&m_unk0xa8, TVSIL_NORMAL);
 	}
-	else {
-		if (!m_unk0xa8.Create(16, 16, ILC_COLORDDB | ILC_MASK, 0, 0)) {
-			return -1;
-		}
-		if (m_unk0xa8.Add(&bitmap, RGB(255, 0, 255)) == -1) {
-			return -1;
-		}
-	}
 
-	SetImageList(&m_unk0xa8, TVSIL_NORMAL);
 	EnableMultiSelect(TRUE);
 	VTable0x15c();
 	return 0;
@@ -328,6 +379,33 @@ int CSelectionTreeCtrl::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	FUN_004204e0();
 	SetTimer(0, 200, NULL);
 	return 0;
+}
+
+// FUNCTION: ROBLOX 0x00423770
+void CSelectionTreeCtrl::SelectAllIgnore(BOOL bSelect, HTREEITEM hIgnore)
+{
+	if (!bSelect) {
+		CRobloxTreeCtrlNode* node = reinterpret_cast<CRobloxTreeCtrlNode*>(GetItemData(hIgnore));
+		boost::shared_ptr<RBX::Instance> instance;
+		if (node) {
+			instance = node->m_unk0x0c;
+		}
+
+		{
+			RBX::DataModel::Lock lock(VTable0x14c());
+			RBX::Selection* selection = VTable0x148();
+			RBX::ScopedAssign<undefined> updating(m_unk0xce, true);
+			selection->setSelection(instance.get());
+		}
+
+		{
+			RBX::ScopedAssign<undefined> selecting(m_unk0xcd, true);
+			CXTTreeBase::SelectAllIgnore(FALSE, hIgnore);
+		}
+	}
+	else {
+		CXTTreeBase::SelectAllIgnore(bSelect, hIgnore);
+	}
 }
 
 // FUNCTION: ROBLOX 0x004239a0
@@ -874,12 +952,12 @@ void CSelectionTreeCtrl::FUN_004285a0(boost::shared_ptr<RBX::DataModel> dataMode
 	}
 }
 
-// STUB: ROBLOX 0x00428720
+// FUNCTION: ROBLOX 0x00428720
 void CRobloxTreeCtrl::FUN_00428720(NMHDR* pNMHDR, LRESULT* pResult)
 {
 	NMTREEVIEW* treeView = reinterpret_cast<NMTREEVIEW*>(pNMHDR);
+	CRobloxTreeCtrlNode* node = reinterpret_cast<CRobloxTreeCtrlNode*>(treeView->itemNew.lParam);
 	if (treeView->action & TVE_EXPAND) {
-		CRobloxTreeCtrlNode* node = reinterpret_cast<CRobloxTreeCtrlNode*>(treeView->itemNew.lParam);
 		if (!node->m_unk0x2d) {
 			node->FUN_00426960();
 			node->FUN_00426b00();
@@ -896,10 +974,13 @@ static void FUN_00428770(RBX::Instance* parent, boost::shared_ptr<RBX::Instance>
 	}
 
 	RBX::Workspace* workspace = RBX::Workspace::findWorkspace(parent);
-	if (workspace && !child->isDescendentOf(workspace)) {
-		std::vector<boost::shared_ptr<RBX::Instance> > instances;
-		instances.push_back(child);
-		workspace->insertInstances(instances, workspace, RBX::INSERT_TO_TREE, RBX::SUPPRESS_PROMPTS);
+	if (workspace) {
+		bool descendent = child->isDescendentOf(workspace);
+		if (!descendent) {
+			std::vector<boost::shared_ptr<RBX::Instance> > instances;
+			instances.push_back(child);
+			workspace->insertInstances(instances, workspace, RBX::INSERT_TO_TREE, RBX::SUPPRESS_PROMPTS);
+		}
 	}
 
 	child->setParent(parent);

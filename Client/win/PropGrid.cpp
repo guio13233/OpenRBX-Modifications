@@ -108,8 +108,8 @@ void XItem<RBX::BrickColor, CPropertyGridItemBrickColor, RBX::Reflection::TypedP
 	SetColor(RGB(color.r, color.g, color.b));
 }
 
-// STUB: ROBLOX 0x0043bdc0
-static CString FUN_0043bdc0(COLORREF color)
+// FUNCTION: ROBLOX 0x0043bdc0
+CString FUN_0043bdc0(COLORREF color)
 {
 	RBX::BrickColor brickColor = RBX::BrickColor::closest(
 		G3D::Color3(GetRValue(color) / 255.0, GetGValue(color) / 255.0, GetBValue(color) / 255.0)
@@ -117,14 +117,14 @@ static CString FUN_0043bdc0(COLORREF color)
 	return brickColor.name().c_str();
 }
 
-// STUB: ROBLOX 0x0043be40
+// FUNCTION: ROBLOX 0x0043be40
 void CPropertyGridItemBrickColor::SetColor(COLORREF clr)
 {
 	m_clrValue = clr;
 	CXTPPropertyGridItem::SetValue(FUN_0043bdc0(clr));
 }
 
-// STUB: ROBLOX 0x0043be70
+// FUNCTION: ROBLOX 0x0043be70
 CPropertyGridItemBrickColor::CPropertyGridItemBrickColor(CString strCaption, COLORREF clr)
 	: CXTPPropertyGridItemColor(strCaption, clr)
 {
@@ -179,7 +179,7 @@ void XItem<RBX::TextureId, CXTPPropertyGridItem, RBX::Reflection::TypedPropertyD
 }
 
 // FUNCTION: ROBLOX 0x0043c120
-static const RBX::Name& FUN_0043c120(const char* path)
+const RBX::Name& FUN_0043c120(const char* path)
 {
 	switch (G3D::GImage::resolveFormat(path)) {
 	case G3D::GImage::JPEG:
@@ -241,10 +241,36 @@ void CPropertyGridItemBrickColor::SetValue(CString strValue)
 	}
 }
 
-// STUB: ROBLOX 0x0043c7f0
+// FUNCTION: ROBLOX 0x0043c7f0
 void CPropertyGridItemBrickColor::OnInplaceButtonDown(CXTPPropertyGridInplaceButton* pButton)
 {
-	STUB(0x43c7f0);
+	if (m_pGrid->SendNotifyMessage(XTP_PGN_INPLACEBUTTONDOWN, (LPARAM) pButton) == TRUE) {
+		return;
+	}
+
+	if (!OnRequestEdit()) {
+		return;
+	}
+
+	CRect rect = GetItemRect();
+	m_pGrid->ClientToScreen(&rect);
+	rect.left = rect.right - 158;
+
+	CXTPPopupToolBar* popup = CXTPPopupToolBar::CreatePopupToolBar(NULL);
+	CRobloxControlColorSelector* selector = new CRobloxControlColorSelector();
+	popup->GetControls()->Add(selector, 0);
+	if (GetValue() != "") {
+		selector->SetColor(GetColor());
+	}
+
+	if (CXTPCommandBars::TrackPopupMenu(
+			popup, TPM_RIGHTALIGN | TPM_NONOTIFY, rect.right, rect.bottom, AfxGetMainWnd()
+		) &&
+		selector->m_unk0x174) {
+		OnValueChanged(FUN_0043bdc0(selector->GetColor()));
+	}
+
+	popup->InternalRelease();
 }
 
 // FUNCTION: ROBLOX 0x0043c990
@@ -352,14 +378,16 @@ void CPropGrid::FUN_0043e6b0(T* item)
 	CXTPPropertyGridItem* category = FUN_0043cba0(item->m_unk0x124->category);
 
 	int i = 0;
-	for (; i < category->GetChilds()->GetCount(); i++) {
-		if (item->GetCaption().Compare(category->GetChilds()->GetAt(i)->GetCaption()) < 0) {
+	while (i < category->GetChilds()->GetCount()) {
+		CXTPPropertyGridItem* child = category->GetChilds()->GetAt(i);
+		if (item->GetCaption().Compare(child->GetCaption()) < 0) {
 			break;
 		}
+		i++;
 	}
 
 	category->InsertChildItem(i, item);
-	m_unk0x1a8[item->m_unk0x124] = item;
+	m_unk0x1a8[item->getDescriptor()] = item;
 	m_unk0x198.push_back(item);
 }
 
@@ -429,8 +457,8 @@ void XItem<T, Base, Descriptor>::VTable0x00(
 	const std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >& instances
 )
 {
-	bool hasValue = false;
 	T first;
+	bool hasValue = false;
 	std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::const_iterator
 		objectsEnd = instances.end();
 	for (std::vector<const RBX::Reflection::ClassDescriptor*>::const_iterator iter = m_unk0x04.begin(),
@@ -441,22 +469,18 @@ void XItem<T, Base, Descriptor>::VTable0x00(
 		std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::
 			const_iterator found = instances.find(descriptor);
 		if (found != objectsEnd) {
-			const std::vector<boost::shared_ptr<RBX::Instance> >& objects = found->second;
-			for (std::vector<boost::shared_ptr<RBX::Instance> >::const_iterator instance = objects.begin(),
-																				instancesEnd = objects.end();
+			for (std::vector<boost::shared_ptr<RBX::Instance> >::const_iterator instance = found->second.begin(),
+																				instancesEnd = found->second.end();
 				 instance != instancesEnd;
 				 ++instance) {
 				if (!hasValue) {
 					first = FUN_0043f1f0(instance->get());
 					VTable0xe8(first);
 				}
-				else {
-					T value = FUN_0043f1f0(instance->get());
-					if (!VTable0xec(first, value)) {
-						CXTPPropertyGridItem::SetValue("");
-						SetHidden(FALSE);
-						return;
-					}
+				else if (!VTable0xec(first, FUN_0043f1f0(instance->get()))) {
+					CXTPPropertyGridItem::SetValue("");
+					SetHidden(FALSE);
+					return;
 				}
 				hasValue = true;
 			}
@@ -497,16 +521,16 @@ void XItem<T, Base, Descriptor>::FUN_00443670(const T& value)
 
 		std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::iterator
 			objectsEnd = m_unk0x14->m_unk0x1d0.end();
-		std::vector<const RBX::Reflection::ClassDescriptor*>::iterator end = m_unk0x04.end();
-		for (std::vector<const RBX::Reflection::ClassDescriptor*>::iterator iter = m_unk0x04.begin(); iter != end;
+		std::vector<const RBX::Reflection::ClassDescriptor*>::const_iterator end = m_unk0x04.end();
+		for (std::vector<const RBX::Reflection::ClassDescriptor*>::const_iterator iter = m_unk0x04.begin(); iter != end;
 			 ++iter) {
 			const RBX::Reflection::ClassDescriptor* descriptor = *iter;
+			CPropGrid::Unk0x1d0& objects = m_unk0x14->m_unk0x1d0;
 			std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::iterator
-				found = m_unk0x14->m_unk0x1d0.find(descriptor);
+				found = objects.find(descriptor);
 			if (found != objectsEnd) {
-				std::vector<boost::shared_ptr<RBX::Instance> >& instances = found->second;
-				for (std::vector<boost::shared_ptr<RBX::Instance> >::iterator instance = instances.begin(),
-																			  instancesEnd = instances.end();
+				for (std::vector<boost::shared_ptr<RBX::Instance> >::iterator instance = found->second.begin(),
+																			  instancesEnd = found->second.end();
 					 instance != instancesEnd;
 					 ++instance) {
 					undoState->addProperty(RBX::Reflection::Property(*m_unk0x124, instance->get()));
@@ -619,7 +643,7 @@ BOOL Vector3Item::OnAfterEdit(CString& strValue)
 	return RBX::StringConverter<G3D::Vector3>::convertToValue((LPCTSTR) strValue, value);
 }
 
-// STUB: ROBLOX 0x00441cf0
+// FUNCTION: ROBLOX 0x00441cf0
 void Vector3Item::VTable0x00(
 	const std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >& instances
 )
@@ -701,19 +725,48 @@ void Vector3Item::OnAddChildItem()
 }
 
 // FUNCTION: ROBLOX 0x00442100
-RefItem::RefItem(const RBX::Reflection::PropertyDescriptor& descriptor, CPropGrid* grid)
+RefItem::RefItem(const RBX::Reflection::RefPropertyDescriptor& descriptor, CPropGrid* grid)
 	: XItem<std::string, CXTPPropertyGridItem, RBX::Reflection::PropertyDescriptor>(descriptor, grid),
 	  m_unk0x128(&descriptor)
 {
 	SetReadOnly(TRUE);
 }
 
-// STUB: ROBLOX 0x00442180
+// FUNCTION: ROBLOX 0x00442180
 void RefItem::VTable0x00(
 	const std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >& instances
 )
 {
-	STUB(0x442180);
+	RBX::Instance* first;
+	bool hasValue = false;
+	std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::const_iterator
+		objectsEnd = instances.end();
+	for (std::vector<const RBX::Reflection::ClassDescriptor*>::const_iterator iter = m_unk0x04.begin(),
+																			  end = m_unk0x04.end();
+		 iter != end;
+		 ++iter) {
+		const RBX::Reflection::ClassDescriptor* descriptor = *iter;
+		std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::
+			const_iterator found = instances.find(descriptor);
+		if (found != objectsEnd) {
+			for (std::vector<boost::shared_ptr<RBX::Instance> >::const_iterator instance = found->second.begin(),
+																				instancesEnd = found->second.end();
+				 instance != instancesEnd;
+				 ++instance) {
+				if (!hasValue) {
+					first = static_cast<RBX::Instance*>(m_unk0x128->getRefValue(instance->get()));
+					VTable0xe8(first ? first->getName() : std::string(""));
+				}
+				else if (first != m_unk0x128->getRefValue(instance->get())) {
+					CXTPPropertyGridItem::SetValue("");
+					SetHidden(FALSE);
+					return;
+				}
+				hasValue = true;
+			}
+		}
+	}
+	SetHidden(!hasValue);
 }
 
 // FUNCTION: ROBLOX 0x00442430
@@ -740,8 +793,10 @@ void ScriptItem::VTable0x00(
 	const std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >& instances
 )
 {
-	std::vector<const RBX::Reflection::ClassDescriptor*>::iterator end = m_unk0x04.end();
-	for (std::vector<const RBX::Reflection::ClassDescriptor*>::iterator iter = m_unk0x04.begin(); iter != end; ++iter) {
+	for (std::vector<const RBX::Reflection::ClassDescriptor*>::const_iterator iter = m_unk0x04.begin(),
+																			  end = m_unk0x04.end();
+		 iter != end;
+		 ++iter) {
 		const RBX::Reflection::ClassDescriptor* descriptor = *iter;
 		std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::
 			const_iterator found = instances.find(descriptor);
@@ -753,21 +808,22 @@ void ScriptItem::VTable0x00(
 	SetHidden(TRUE);
 }
 
-// STUB: ROBLOX 0x00442620
+// FUNCTION: ROBLOX 0x00442620
 void ScriptItem::OnInplaceButtonDown(CXTPPropertyGridInplaceButton* pButton)
 {
 	std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::iterator
 		objectsEnd = m_unk0x14->m_unk0x1d0.end();
-	for (std::vector<const RBX::Reflection::ClassDescriptor*>::iterator iter = m_unk0x04.begin(), end = m_unk0x04.end();
+	for (std::vector<const RBX::Reflection::ClassDescriptor*>::const_iterator iter = m_unk0x04.begin(),
+																			  end = m_unk0x04.end();
 		 iter != end;
 		 ++iter) {
 		const RBX::Reflection::ClassDescriptor* descriptor = *iter;
+		CPropGrid::Unk0x1d0& objects = m_unk0x14->m_unk0x1d0;
 		std::map<const RBX::Reflection::ClassDescriptor*, std::vector<boost::shared_ptr<RBX::Instance> > >::iterator
-			found = m_unk0x14->m_unk0x1d0.find(descriptor);
+			found = objects.find(descriptor);
 		if (found != objectsEnd) {
-			std::vector<boost::shared_ptr<RBX::Instance> >& instances = found->second;
-			for (std::vector<boost::shared_ptr<RBX::Instance> >::iterator instance = instances.begin(),
-																		  instancesEnd = instances.end();
+			for (std::vector<boost::shared_ptr<RBX::Instance> >::iterator instance = found->second.begin(),
+																		  instancesEnd = found->second.end();
 				 instance != instancesEnd;
 				 ++instance) {
 				if (RBX::Script* script = dynamic_cast<RBX::Script*>(instance->get())) {
@@ -787,7 +843,7 @@ EnumItem::EnumItem(const RBX::Reflection::EnumPropertyDescriptor& descriptor, CP
 			 end = descriptor.enumDescriptor.end();
 		 iter != end;
 		 ++iter) {
-		m_pConstraints->AddConstraint((*iter)->name.c_str(), (*iter)->value);
+		GetConstraints()->AddConstraint((*iter)->name.c_str(), (*iter)->value);
 	}
 }
 
@@ -807,7 +863,7 @@ TextureItem::TextureItem(const RBX::Reflection::TypedPropertyDescriptor<RBX::Tex
 	CXTPPropertyGridItem::SetValue("(Texture)");
 }
 
-// STUB: ROBLOX 0x00442e20
+// FUNCTION: ROBLOX 0x00442e20
 void CPropGrid::FUN_00442e20(
 	const RBX::Reflection::ClassDescriptor* classDescriptor, const RBX::Reflection::PropertyDescriptor* descriptor
 )
@@ -869,7 +925,7 @@ void CPropGrid::FUN_00442e20(
 		FUN_0043e6b0(new RefItem(*d, this));
 	}
 	else if (descriptor == &RBX::Script::prop_EmbeddedSourceCode) {
-		FUN_0043e6b0(new ScriptItem(RBX::Script::prop_EmbeddedSourceCode, this));
+		FUN_0043e6b0(new ScriptItem(*descriptor, this));
 	}
 	else if (
 		const RBX::Reflection::TypedPropertyDescriptor<RBX::TextureId>* d =
@@ -926,7 +982,7 @@ void CSelectionPropGrid::onEvent(const RBX::Selection* source, RBX::SelectionCha
 	}
 }
 
-// STUB: ROBLOX 0x00445580
+// FUNCTION: ROBLOX 0x00445580
 void CSelectionPropGrid::FUN_00445580(RBX::Selection* selection)
 {
 	boost::recursive_mutex::scoped_lock lock(m_unk0x188);
