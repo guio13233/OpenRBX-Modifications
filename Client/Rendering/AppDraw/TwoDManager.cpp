@@ -140,8 +140,10 @@ void TwoDManager::FUN_0067cec0()
 		return;
 	}
 
+	std::list<Unk0x30>::iterator end = m_unk0x3c.end();
+	std::list<Unk0x30>::iterator it;
 	size_t numVertices = 0;
-	for (std::list<Unk0x30>::iterator it = m_unk0x3c.begin(); it != m_unk0x3c.end(); ++it) {
+	for (it = m_unk0x3c.begin(); it != end; ++it) {
 		if (it->m_unk0x28 == RenderOperation::OT_TRIANGLE_LIST) {
 			numVertices += 6;
 		}
@@ -173,94 +175,178 @@ void TwoDManager::FUN_0067cec0()
 	}
 
 	float* vertex = static_cast<float*>(m_unk0x24->lock(HardwareBuffer::HBL_DISCARD));
+	uint32* colour;
 
-	std::list<Unk0x30>::iterator it = m_unk0x3c.begin();
+	it = m_unk0x3c.begin();
 	Unk0x10 batch;
 	batch.m_unk0x00 = it->m_unk0x24;
 	batch.m_unk0x04 = it->m_unk0x28;
 	batch.m_unk0x08 = it->m_unk0x2c;
+	batch.m_unk0x0c = 0;
 
-	for (;;) {
-		batch.m_unk0x0c = 0;
+	while (it != end) {
+		int count;
 
-		for (;;) {
-			const Unk0x30& item = *it;
-			float colour = *reinterpret_cast<const float*>(&item.m_unk0x20);
-			int count;
+		if (batch.m_unk0x04 == RenderOperation::OT_TRIANGLE_LIST) {
+			*vertex++ = it->m_unk0x00;
+			*vertex++ = it->m_unk0x0c;
+			*vertex++ = -1.0f;
+			colour = reinterpret_cast<uint32*>(vertex);
+			*colour++ = it->m_unk0x20;
+			vertex = reinterpret_cast<float*>(colour);
+			*vertex++ = it->m_unk0x10;
+			*vertex++ = it->m_unk0x1c;
 
-			if (batch.m_unk0x04 == RenderOperation::OT_TRIANGLE_LIST) {
-				const float quad[6][4] = {
-					{item.m_unk0x00, item.m_unk0x0c, item.m_unk0x10, item.m_unk0x1c},
-					{item.m_unk0x08, item.m_unk0x04, item.m_unk0x18, item.m_unk0x14},
-					{item.m_unk0x00, item.m_unk0x04, item.m_unk0x10, item.m_unk0x14},
-					{item.m_unk0x00, item.m_unk0x0c, item.m_unk0x10, item.m_unk0x1c},
-					{item.m_unk0x08, item.m_unk0x04, item.m_unk0x18, item.m_unk0x14},
-					{item.m_unk0x08, item.m_unk0x0c, item.m_unk0x18, item.m_unk0x1c},
-				};
-				for (int i = 0; i < 6; i++) {
-					*vertex++ = quad[i][0];
-					*vertex++ = quad[i][1];
-					*vertex++ = -1.0f;
-					*vertex++ = colour;
-					*vertex++ = quad[i][2];
-					*vertex++ = quad[i][3];
-				}
-				count = 6;
-			}
-			else if (batch.m_unk0x08 == 0) {
-				const float outline[8][2] = {
-					{item.m_unk0x00, item.m_unk0x04},
-					{item.m_unk0x08, item.m_unk0x04},
-					{item.m_unk0x08, item.m_unk0x04},
-					{item.m_unk0x08, item.m_unk0x0c},
-					{item.m_unk0x08, item.m_unk0x0c},
-					{item.m_unk0x00, item.m_unk0x0c},
-					{item.m_unk0x00, item.m_unk0x0c},
-					{item.m_unk0x00, item.m_unk0x04},
-				};
-				for (int i = 0; i < 8; i++) {
-					*vertex++ = outline[i][0];
-					*vertex++ = outline[i][1];
-					*vertex++ = -1.0f;
-					*vertex++ = colour;
-					*vertex++ = item.m_unk0x10;
-					*vertex++ = item.m_unk0x14;
-				}
+			*vertex++ = it->m_unk0x08;
+			*vertex++ = it->m_unk0x04;
+			*vertex++ = -1.0f;
+			colour = reinterpret_cast<uint32*>(vertex);
+			*colour++ = it->m_unk0x20;
+			vertex = reinterpret_cast<float*>(colour);
+			*vertex++ = it->m_unk0x18;
+			*vertex++ = it->m_unk0x14;
+
+			*vertex++ = it->m_unk0x00;
+			*vertex++ = it->m_unk0x04;
+			*vertex++ = -1.0f;
+			colour = reinterpret_cast<uint32*>(vertex);
+			*colour++ = it->m_unk0x20;
+			vertex = reinterpret_cast<float*>(colour);
+			*vertex++ = it->m_unk0x10;
+			*vertex++ = it->m_unk0x14;
+
+			*vertex++ = it->m_unk0x00;
+			*vertex++ = it->m_unk0x0c;
+			*vertex++ = -1.0f;
+			colour = reinterpret_cast<uint32*>(vertex);
+			*colour++ = it->m_unk0x20;
+			vertex = reinterpret_cast<float*>(colour);
+			*vertex++ = it->m_unk0x10;
+			*vertex++ = it->m_unk0x1c;
+
+			*vertex++ = it->m_unk0x08;
+			*vertex++ = it->m_unk0x04;
+			*vertex++ = -1.0f;
+			colour = reinterpret_cast<uint32*>(vertex);
+			*colour++ = it->m_unk0x20;
+			vertex = reinterpret_cast<float*>(colour);
+			*vertex++ = it->m_unk0x18;
+			*vertex++ = it->m_unk0x14;
+
+			*vertex++ = it->m_unk0x08;
+			*vertex++ = it->m_unk0x0c;
+			*vertex++ = -1.0f;
+			colour = reinterpret_cast<uint32*>(vertex);
+			*colour++ = it->m_unk0x20;
+			vertex = reinterpret_cast<float*>(colour);
+			*vertex++ = it->m_unk0x18;
+			*vertex++ = it->m_unk0x1c;
+
+			count = 6;
+		}
+		else {
+			*vertex++ = it->m_unk0x00;
+			*vertex++ = it->m_unk0x04;
+			*vertex++ = -1.0f;
+			colour = reinterpret_cast<uint32*>(vertex);
+			*colour++ = it->m_unk0x20;
+			vertex = reinterpret_cast<float*>(colour);
+			*vertex++ = it->m_unk0x10;
+			*vertex++ = it->m_unk0x14;
+
+			if (batch.m_unk0x08 == 0) {
+				*vertex++ = it->m_unk0x08;
+				*vertex++ = it->m_unk0x04;
+				*vertex++ = -1.0f;
+				colour = reinterpret_cast<uint32*>(vertex);
+				*colour++ = it->m_unk0x20;
+				vertex = reinterpret_cast<float*>(colour);
+				*vertex++ = it->m_unk0x10;
+				*vertex++ = it->m_unk0x14;
+
+				*vertex++ = it->m_unk0x08;
+				*vertex++ = it->m_unk0x04;
+				*vertex++ = -1.0f;
+				colour = reinterpret_cast<uint32*>(vertex);
+				*colour++ = it->m_unk0x20;
+				vertex = reinterpret_cast<float*>(colour);
+				*vertex++ = it->m_unk0x10;
+				*vertex++ = it->m_unk0x14;
+
+				*vertex++ = it->m_unk0x08;
+				*vertex++ = it->m_unk0x0c;
+				*vertex++ = -1.0f;
+				colour = reinterpret_cast<uint32*>(vertex);
+				*colour++ = it->m_unk0x20;
+				vertex = reinterpret_cast<float*>(colour);
+				*vertex++ = it->m_unk0x10;
+				*vertex++ = it->m_unk0x14;
+
+				*vertex++ = it->m_unk0x08;
+				*vertex++ = it->m_unk0x0c;
+				*vertex++ = -1.0f;
+				colour = reinterpret_cast<uint32*>(vertex);
+				*colour++ = it->m_unk0x20;
+				vertex = reinterpret_cast<float*>(colour);
+				*vertex++ = it->m_unk0x10;
+				*vertex++ = it->m_unk0x14;
+
+				*vertex++ = it->m_unk0x00;
+				*vertex++ = it->m_unk0x0c;
+				*vertex++ = -1.0f;
+				colour = reinterpret_cast<uint32*>(vertex);
+				*colour++ = it->m_unk0x20;
+				vertex = reinterpret_cast<float*>(colour);
+				*vertex++ = it->m_unk0x10;
+				*vertex++ = it->m_unk0x14;
+
+				*vertex++ = it->m_unk0x00;
+				*vertex++ = it->m_unk0x0c;
+				*vertex++ = -1.0f;
+				colour = reinterpret_cast<uint32*>(vertex);
+				*colour++ = it->m_unk0x20;
+				vertex = reinterpret_cast<float*>(colour);
+				*vertex++ = it->m_unk0x10;
+				*vertex++ = it->m_unk0x14;
+
+				*vertex++ = it->m_unk0x00;
+				*vertex++ = it->m_unk0x04;
+				*vertex++ = -1.0f;
+				colour = reinterpret_cast<uint32*>(vertex);
+				*colour++ = it->m_unk0x20;
+				vertex = reinterpret_cast<float*>(colour);
+				*vertex++ = it->m_unk0x10;
+				*vertex++ = it->m_unk0x14;
+
 				count = 8;
 			}
 			else {
-				const float line[2][2] = {
-					{item.m_unk0x00, item.m_unk0x04},
-					{item.m_unk0x08, item.m_unk0x0c},
-				};
-				for (int i = 0; i < 2; i++) {
-					*vertex++ = line[i][0];
-					*vertex++ = line[i][1];
-					*vertex++ = -1.0f;
-					*vertex++ = colour;
-					*vertex++ = item.m_unk0x10;
-					*vertex++ = item.m_unk0x14;
-				}
+				*vertex++ = it->m_unk0x08;
+				*vertex++ = it->m_unk0x0c;
+				*vertex++ = -1.0f;
+				colour = reinterpret_cast<uint32*>(vertex);
+				*colour++ = it->m_unk0x20;
+				vertex = reinterpret_cast<float*>(colour);
+				*vertex++ = it->m_unk0x10;
+				*vertex++ = it->m_unk0x14;
+
 				count = 2;
 			}
+		}
 
-			batch.m_unk0x0c += count;
-			++it;
+		batch.m_unk0x0c += count;
+		++it;
 
-			if (it == m_unk0x3c.end() || it->m_unk0x24 != batch.m_unk0x00 || it->m_unk0x28 != batch.m_unk0x04) {
-				break;
+		if (it == end || it->m_unk0x24 != batch.m_unk0x00 || it->m_unk0x28 != batch.m_unk0x04) {
+			batches.push_back(batch);
+
+			if (it != end) {
+				batch.m_unk0x00 = it->m_unk0x24;
+				batch.m_unk0x04 = it->m_unk0x28;
+				batch.m_unk0x08 = it->m_unk0x2c;
+				batch.m_unk0x0c = 0;
 			}
 		}
-
-		batches.push_back(batch);
-
-		if (it == m_unk0x3c.end()) {
-			break;
-		}
-
-		batch.m_unk0x00 = it->m_unk0x24;
-		batch.m_unk0x04 = it->m_unk0x28;
-		batch.m_unk0x08 = it->m_unk0x2c;
 	}
 
 	m_unk0x24->unlock();
@@ -270,7 +356,8 @@ void TwoDManager::FUN_0067cec0()
 	m_unk0x10.vertexData->vertexStart = 0;
 	TexturePtr current;
 
-	for (std::list<Unk0x10>::iterator batchIt = batches.begin(); batchIt != batches.end(); ++batchIt) {
+	std::list<Unk0x10>::iterator batchEnd = batches.end();
+	for (std::list<Unk0x10>::iterator batchIt = batches.begin(); batchIt != batchEnd; ++batchIt) {
 		if (batchIt->m_unk0x00 == 0) {
 			renderSystem->_disableTextureUnit(0);
 			current.setNull();
@@ -278,7 +365,7 @@ void TwoDManager::FUN_0067cec0()
 		else {
 			texture = TextureManager::getSingleton().getByHandle(batchIt->m_unk0x00);
 
-			if (current.get() != texture.get()) {
+			if (texture.get() != current.get()) {
 				renderSystem->_setTexture(0, true, texture);
 				renderSystem->_setTextureMatrix(0, Matrix4::IDENTITY);
 
@@ -297,9 +384,9 @@ void TwoDManager::FUN_0067cec0()
 				current = texture;
 
 				alphaBlend.blendType = LBT_ALPHA;
-				alphaBlend.operation = LBX_SOURCE1;
 				alphaBlend.source1 = LBS_TEXTURE;
 				alphaBlend.source2 = LBS_DIFFUSE;
+				alphaBlend.operation = LBX_SOURCE1;
 
 				renderSystem->_setTextureBlendMode(0, colourBlend);
 				renderSystem->_setTextureBlendMode(0, alphaBlend);

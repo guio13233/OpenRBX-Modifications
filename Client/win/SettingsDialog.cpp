@@ -4,6 +4,12 @@
 #include "v8datamodel/Selection.h"
 #include "v8tree/Service.h"
 
+template <class T>
+static T* createService(RBX::GlobalSettings* settings)
+{
+	return settings ? settings->create<T>() : NULL;
+}
+
 IMPLEMENT_DYNCREATE(CSettingsDialog, CDialog)
 IMPLEMENT_DYNCREATE(CSettingsExplorer, CInstanceExplorer)
 
@@ -58,6 +64,16 @@ void CSettingsDialog::FUN_0046b3f0(CWnd* p_unk0x04)
 	}
 }
 
+// FUNCTION: ROBLOX 0x0046b560
+void CSettingsPropGrid::FUN_00442e20(
+	const RBX::Reflection::ClassDescriptor* classDescriptor, const RBX::Reflection::PropertyDescriptor* descriptor
+)
+{
+	if (descriptor->owner != RBX::Instance::classDescriptor()) {
+		CPropGrid::FUN_00442e20(classDescriptor, descriptor);
+	}
+}
+
 // STUB: ROBLOX 0x0046b590
 BOOL CSettingsDialog::OnInitDialog()
 {
@@ -77,7 +93,8 @@ BOOL CSettingsDialog::OnInitDialog()
 	m_unk0x18c->FUN_004212d0(RBX::GlobalSettings::singleton().get());
 
 	m_unk0x190.Create(CRect(0, 0, 0, 0), &m_unk0x74, m_unk0x74.IdFromRowCol(0, 1));
-	m_unk0x190.FUN_00445580(RBX::ServiceProvider::create<RBX::Selection>(RBX::GlobalSettings::singleton().get()));
+	RBX::Selection* selection = createService<RBX::Selection>(RBX::GlobalSettings::singleton().get());
+	m_unk0x190.FUN_00445580(selection);
 
 	CRect rect;
 	GetDlgItem(1001)->GetWindowRect(&rect);

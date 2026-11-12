@@ -13,6 +13,7 @@
 #include "util/FileSystem.h"
 #include "util/Log.h"
 #include "util/RunStateOwner.h"
+#include "util/Sound.h"
 #include "util/StandardOut.h"
 #include "v8datamodel/Selection.h"
 #include "v8datamodel/TimeState.h"
@@ -45,106 +46,6 @@ template <class T>
 static T* findService(RBX::DataModel* dataModel)
 {
 	return dataModel ? dataModel->find<T>() : NULL;
-}
-
-static UINT clipboardFormat()
-{
-	static UINT format = RegisterClipboardFormat("Roblox");
-
-	return format;
-}
-
-// FUNCTION: ROBLOX 0x0040ffc0
-void CutVerb::doIt(RBX::IDataState* dataState)
-{
-	getContainer()->getVerb("Copy")->doIt(dataState);
-	RBX::DeleteBase::doIt(dataState);
-}
-
-// FUNCTION: ROBLOX 0x00412120
-bool PasteVerb::isEnabled() const
-{
-	if (IsClipboardFormatAvailable(clipboardFormat()) != TRUE) {
-		return false;
-	}
-
-	if (!m_unk0x10) {
-		return true;
-	}
-
-	return (m_unk0x0c ? m_unk0x0c->create<RBX::Selection>() : NULL)->size() == 1;
-}
-
-// FUNCTION: ROBLOX 0x004121a0
-void PasteVerb::doIt(RBX::IDataState* dataState)
-{
-	if (m_unk0x0c->findFirstChildByName("NetworkClient")) {
-		return;
-	}
-
-	if (!AfxGetMainWnd()->OpenClipboard()) {
-		return;
-	}
-
-	HANDLE handle = GetClipboardData(clipboardFormat());
-	const char* text = static_cast<const char*>(GlobalLock(handle));
-	std::vector<boost::shared_ptr<RBX::Instance> > instances;
-	{
-		std::istringstream stream(text);
-		TextXmlParser machine(stream.rdbuf());
-		std::auto_ptr<XmlElement> root(machine.parse());
-
-		RBX::Selection* selection = createService<RBX::Selection>(m_unk0x0c);
-		RBX::Instance* parent =
-			m_unk0x10 && selection->size() == 1 ? selection->front().get() : m_unk0x0c->getWorkspace();
-		RBX::InsertMode insertMode = m_unk0x10 ? RBX::INSERT_TO_TREE : RBX::INSERT_TO_3D_VIEW;
-		SerializerV2 serializer;
-		serializer.loadInstances(root.get(), instances);
-		m_unk0x0c->getWorkspace()->insertInstances(instances, parent, insertMode, RBX::SUPPRESS_PROMPTS);
-
-		const std::vector<boost::shared_ptr<RBX::Instance> >& items = instances;
-		selection->setSelection(items.begin(), items.end());
-	}
-
-	GlobalUnlock(handle);
-	CloseClipboard();
-
-	RBX::XmlState* undoState = new RBX::UndoState();
-	RBX::XmlState* redoState = new RBX::RedoState();
-	for (std::vector<boost::shared_ptr<RBX::Instance> >::iterator iter = instances.begin(); iter != instances.end();
-		 ++iter) {
-		undoState->addDelete(*iter->get());
-		redoState->addParentProperty(*iter->get());
-	}
-
-	dataState->pushState(getName(), undoState, redoState);
-	dataState->setDirty(true);
-}
-
-// FUNCTION: ROBLOX 0x004125e0
-void CopyVerb::doIt(RBX::IDataState* dataState)
-{
-	XmlElement* root = SerializerV2::newRootElement();
-	RBX::Selection* selection = createService<RBX::Selection>(dataModel);
-	std::for_each(selection->begin(), selection->end(), boost::bind(&RBX::FUN_00597490, root, _1));
-
-	std::ostringstream stream;
-	TextXmlWriter writer(stream);
-	writer.serialize(root);
-	delete root;
-
-	if (AfxGetMainWnd()->OpenClipboard()) {
-		EmptyClipboard();
-
-		std::string text = stream.str();
-		HGLOBAL handle = GlobalAlloc(GMEM_MOVEABLE, text.length() + 1);
-		char* buffer = static_cast<char*>(GlobalLock(handle));
-		strcpy(buffer, text.c_str());
-		GlobalUnlock(handle);
-
-		SetClipboardData(clipboardFormat(), handle);
-		CloseClipboard();
-	}
 }
 
 // FUNCTION: ROBLOX 0x00453ed0
@@ -470,19 +371,6 @@ void CRobloxDoc::FUN_00455ff0(CCmdUI* pCmdUI)
 	}
 }
 
-// FUNCTION: ROBLOX 0x00456c00
-void CRobloxDoc::FUN_00456c00(int id, RBX::Verb* verb)
-{
-	if (verb) {
-		const RBX::Name* name = &verb->getName();
-		m_unk0x58[id] = name;
-	}
-	else {
-		const RBX::Name* name = &RBX::Name::getNullName();
-		m_unk0x58[id] = name;
-	}
-}
-
 // FUNCTION: ROBLOX 0x00456c50
 void CRobloxDoc::FUN_00456c50(int id, RBX::Verb* verb)
 {
@@ -490,7 +378,7 @@ void CRobloxDoc::FUN_00456c50(int id, RBX::Verb* verb)
 		m_unk0x64.push_back(verb);
 	}
 
-	FUN_00456c00(id, verb);
+	bind(id, verb);
 }
 
 // FUNCTION: ROBLOX 0x00456cb0
@@ -498,10 +386,13 @@ CRobloxDoc::CRobloxDoc() : m_unk0x78(NULL)
 {
 }
 
-// STUB: ROBLOX 0x00456d30
+// FUNCTION: ROBLOX 0x00456d30
 void CRobloxDoc::FUN_00456d30()
 {
-	if (CComObject<CWorkspace>::CreateInstance(&m_unk0x78) != S_OK) {
+	HRESULT hr = CComObject<CWorkspace>::CreateInstance(&m_unk0x78);
+	if (hr == S_OK) {
+	}
+	else {
 		throw std::runtime_error("Unable to create CWorkspace");
 	}
 
@@ -527,25 +418,25 @@ void CRobloxDoc::FUN_00456d30()
 	m_unk0x64.push_back(new RBX::CameraZoomExtentsCommand(m_unk0x78->FUN_0046edf0()));
 	m_unk0x64.push_back(new RBX::CameraModelViewCommand(m_unk0x78->FUN_0046edf0()));
 
-	FUN_00456c00(0xe120, &m_unk0x74->m_unk0x28);
-	FUN_00456c00(0xe12a, &m_unk0x74->m_unk0x50);
-	FUN_00456c00(0x8005, &m_unk0x74->m_unk0xfc);
-	FUN_00456c00(0x8011, &m_unk0x74->m_unk0x26c);
-	FUN_00456c00(0x8010, &m_unk0x74->m_unk0x248);
-	FUN_00456c00(0x80d8, &m_unk0x74->m_unk0x43c);
-	FUN_00456c00(0x80d4, &m_unk0x74->m_unk0x420);
-	FUN_00456c00(0x80d5, &m_unk0x74->m_unk0x42c);
-	m_unk0x58[0x8039] = &RBX::Name::lookup("Group");
-	m_unk0x58[0x803a] = &RBX::Name::lookup("UnGroup");
-	m_unk0x58[0x8061] = &RBX::Name::lookup("WeldSelection");
-	m_unk0x58[0x80a5] = &RBX::Name::lookup("SnapSelection");
-	m_unk0x58[0x8043] = &RBX::Name::lookup("SelectionRotate");
-	m_unk0x58[0x8044] = &RBX::Name::lookup("SelectionTilt");
-	m_unk0x58[0x8057] = &RBX::Name::lookup("SelectionUpBrick");
-	m_unk0x58[0x8059] = &RBX::Name::lookup("SelectionUpPlate");
-	m_unk0x58[0x8058] = &RBX::Name::lookup("SelectionDown");
-	FUN_00456c00(0x80aa, &m_unk0x74->m_unk0x59c);
-	FUN_00456c00(0x80ab, &m_unk0x74->m_unk0x5b8);
+	bind(0xe120, &m_unk0x74->m_unk0x28);
+	bind(0xe12a, &m_unk0x74->m_unk0x50);
+	bind(0x8005, &m_unk0x74->m_unk0xfc);
+	bind(0x8011, &m_unk0x74->m_unk0x26c);
+	bind(0x8010, &m_unk0x74->m_unk0x248);
+	bind(0x80d8, &m_unk0x74->m_unk0x43c);
+	bind(0x80d4, &m_unk0x74->m_unk0x420);
+	bind(0x80d5, &m_unk0x74->m_unk0x42c);
+	bind(0x8039, RBX::Name::lookup("Group"));
+	bind(0x803a, RBX::Name::lookup("UnGroup"));
+	bind(0x8061, RBX::Name::lookup("WeldSelection"));
+	bind(0x80a5, RBX::Name::lookup("SnapSelection"));
+	bind(0x8043, RBX::Name::lookup("SelectionRotate"));
+	bind(0x8044, RBX::Name::lookup("SelectionTilt"));
+	bind(0x8057, RBX::Name::lookup("SelectionUpBrick"));
+	bind(0x8059, RBX::Name::lookup("SelectionUpPlate"));
+	bind(0x8058, RBX::Name::lookup("SelectionDown"));
+	bind(0x80aa, &m_unk0x74->m_unk0x59c);
+	bind(0x80ab, &m_unk0x74->m_unk0x5b8);
 	FUN_00456c50(0xe123, new CutVerb(dataModel.get()));
 	FUN_00456c50(0xe122, new CopyVerb(dataModel.get()));
 	FUN_00456c50(0xe125, new PasteVerb(dataModel.get(), false));
@@ -553,22 +444,22 @@ void CRobloxDoc::FUN_00456d30()
 	FUN_00456c50(0x8062, new InsertDecal(dataModel.get(), "InsertDecal"));
 	FUN_00456c50(0x80ee, new InsertTexture(dataModel.get()));
 	FUN_00456c50(0x807f, new InsertObject(dataModel.get()));
-	FUN_00456c00(0x800d, &m_unk0x74->m_unk0x38c);
-	FUN_00456c00(0x800e, &m_unk0x74->m_unk0x39c);
-	m_unk0x58[0x8040] = &RBX::Name::lookup("FillTool");
-	m_unk0x58[0x8041] = &RBX::Name::lookup("DropperTool");
-	FUN_00456c00(0x8063, &m_unk0x74->m_unk0x44c);
-	FUN_00456c00(0x8065, &m_unk0x74->m_unk0x468);
-	FUN_00456c00(0x8067, &m_unk0x74->m_unk0x484);
-	FUN_00456c00(0x8073, &m_unk0x74->m_unk0x5f0);
-	FUN_00456c00(0x8074, &m_unk0x74->m_unk0x5d4);
-	FUN_00456c00(0x8077, &m_unk0x74->m_unk0x4bc);
-	FUN_00456c00(0x8078, &m_unk0x74->m_unk0x4a0);
-	FUN_00456c00(0x8079, &m_unk0x74->m_unk0x4d8);
-	FUN_00456c00(0x80a7, &m_unk0x74->m_unk0x4f4);
-	FUN_00456c00(0x80a8, &m_unk0x74->m_unk0x510);
-	FUN_00456c00(0x807b, &m_unk0x74->m_unk0x548);
-	FUN_00456c00(0x807c, &m_unk0x74->m_unk0x52c);
+	bind(0x800d, &m_unk0x74->m_unk0x38c);
+	bind(0x800e, &m_unk0x74->m_unk0x39c);
+	bind(0x8040, RBX::Name::lookup("FillTool"));
+	bind(0x8041, RBX::Name::lookup("DropperTool"));
+	bind(0x8063, &m_unk0x74->m_unk0x44c);
+	bind(0x8065, &m_unk0x74->m_unk0x468);
+	bind(0x8067, &m_unk0x74->m_unk0x484);
+	bind(0x8073, &m_unk0x74->m_unk0x5f0);
+	bind(0x8074, &m_unk0x74->m_unk0x5d4);
+	bind(0x8077, &m_unk0x74->m_unk0x4bc);
+	bind(0x8078, &m_unk0x74->m_unk0x4a0);
+	bind(0x8079, &m_unk0x74->m_unk0x4d8);
+	bind(0x80a7, &m_unk0x74->m_unk0x4f4);
+	bind(0x80a8, &m_unk0x74->m_unk0x510);
+	bind(0x807b, &m_unk0x74->m_unk0x548);
+	bind(0x807c, &m_unk0x74->m_unk0x52c);
 }
 
 // FUNCTION: ROBLOX 0x00457910
@@ -887,7 +778,7 @@ BOOL CRobloxDoc::SaveModified()
 	RBX::DataModel::Lock lock(FUN_00403290());
 	bool wasRunning = createService<RBX::RunService>(FUN_00403290().get())->isRunState();
 	createService<RBX::RunService>(FUN_00403290().get())->pause();
-	RBX::Visit* visit = createService<RBX::Visit>(FUN_00403290().get());
+	RBX::Visit* visit = findService<RBX::Visit>(FUN_00403290().get());
 
 	BOOL result;
 	if (visit == NULL || visit->getUploadUrl() == "NoVisit") {
@@ -984,3 +875,8 @@ BEGIN_MESSAGE_MAP(CRobloxDoc, CDocument)
 	ON_UPDATE_COMMAND_UI(0x80db, FUN_00459790)
 END_MESSAGE_MAP()
 // clang-format on
+
+template const RBX::FactoryProduct<RBX::Visit, RBX::Instance, RBX::sVisit>::Creator
+	RBX::FactoryProduct<RBX::Visit, RBX::Instance, RBX::sVisit>::creator;
+
+template RBX::Soundscape::SoundService* RBX::ServiceProvider::create<RBX::Soundscape::SoundService>() const;

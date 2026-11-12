@@ -4,6 +4,7 @@
 #include "appdraw/RbxFont.h"
 #include "appdraw/RbxSceneNode.h"
 #include "appdraw/RbxSubEntity.h"
+#include "appdraw/Unknown0067eb00.h"
 #include "appdraw/VisualEngine.h"
 #include "renderlibnew/TextureProxy.h"
 #include "util/ContentProvider.h"
@@ -34,6 +35,9 @@ Ogre::SharedPtr<Ogre::RbxFont> g_unk0x00949c7c;
 
 // GLOBAL: ROBLOX 0x009612a8
 int g_unk0x009612a8;
+
+// GLOBAL: ROBLOX 0x009612ac
+std::string g_unk0x009612ac = "q0adorn";
 
 // GLOBAL: ROBLOX 0x009612c8
 std::string g_unk0x009612c8 = "material explosion/explosionMatl\n"
@@ -113,17 +117,17 @@ std::string g_unk0x009612e4 = "explosion/explosion1\n"
 							  "\t}\n"
 							  "}\n";
 
+// GLOBAL: ROBLOX 0x00961318
+std::string g_unk0x00961318 = "c01adorn";
+
+// GLOBAL: ROBLOX 0x00961300
+Ogre::MeshPtr g_unk0x00961300;
+
+// GLOBAL: ROBLOX 0x0096130c
+Ogre::MeshPtr g_unk0x0096130c;
+
 // GLOBAL: ROBLOX 0x00961334
 int g_unk0x00961334;
-
-inline static void setExplosionScale(Ogre::ParticleSystem* particleSystem, Ogre::ParticleEmitter* emitter, float scale)
-{
-	particleSystem->setParticleQuota((size_t) (atoi("400") * scale));
-	emitter->setMinParticleVelocity(pow(scale, 1.0f / 3.0f) * atoi("20"));
-	emitter->setMaxParticleVelocity(pow(scale, 1.0f / 3.0f) * atoi("30"));
-	emitter->setMinDuration((scale - 1.0) * 0.4f + atoi("1.2"));
-	emitter->setMaxDuration((scale - 1.0) * 0.4f + atoi("1.2"));
-}
 
 // FUNCTION: ROBLOX 0x0066a0d0
 int AdornRbxGfx::getWidth() const
@@ -183,6 +187,16 @@ void AdornRbxGfx::FUN_0066a2d0(
 	transform.makeTransform(reinterpret_cast<const Ogre::Vector3&>(m_unk0x94.translation) + offset, scale, orientation);
 }
 
+// FUNCTION: ROBLOX 0x0066a360
+void AdornRbxGfx::FUN_0066a360(Ogre::Matrix4& transform)
+{
+	Ogre::Quaternion orientation;
+	orientation.FromRotationMatrix(reinterpret_cast<const Ogre::Matrix3&>(m_unk0x94.rotation));
+	transform.makeTransform(
+		reinterpret_cast<const Ogre::Vector3&>(m_unk0x94.translation), Ogre::Vector3(1.0f, 1.0f, 1.0f), orientation
+	);
+}
+
 // FUNCTION: ROBLOX 0x0066a3c0
 std::string AdornRbxGfx::FUN_0066a3c0()
 {
@@ -191,7 +205,7 @@ std::string AdornRbxGfx::FUN_0066a3c0()
 	return StringConverter<int>::convertToString(id);
 }
 
-// STUB: ROBLOX 0x0066a580
+// FUNCTION: ROBLOX 0x0066a580
 G3D::Vector2 AdornRbxGfx::drawFont2D(
 	const std::string& s,
 	const G3D::Vector2& position,
@@ -205,8 +219,9 @@ G3D::Vector2 AdornRbxGfx::drawFont2D(
 {
 	float x = position.x;
 	float y = getHeight() - 1 - position.y;
+	Ogre::Vector2 pos(x, y);
 	Ogre::Vector2 extent =
-		g_unk0x00949c7c->FUN_0067e1e0(m_unk0x04, s, Ogre::Vector2(x, y), size, color, outline, xAlign, yAlign, spacing);
+		g_unk0x00949c7c->FUN_0067e1e0(m_unk0x04, s, pos, size, color, outline, xAlign, yAlign, spacing);
 	return G3D::Vector2(extent.x, extent.y);
 }
 
@@ -263,6 +278,23 @@ G3D::Rect2D AdornRbxGfx::getTextureSize(G3D::ReferenceCountedPointer<TextureProx
 G3D::ReferenceCountedPointer<TextureProxyBase> AdornRbxGfx::createTextureProxy(const std::string& name)
 {
 	return new RenderNew::TextureProxy(name);
+}
+
+// FUNCTION: ROBLOX 0x0066aae0
+void AdornRbxGfx::FUN_0066aae0(const G3D::Color4& color, int p_unk0x08)
+{
+	char name[64];
+	_snprintf(name, sizeof(name), "setColor%.3f%.3f%.3f%.3f%d", color.r, color.g, color.b, color.a, p_unk0x08);
+	m_unk0x24 = Ogre::MaterialManager::getSingleton().getByName(name);
+	if (m_unk0x24.isNull()) {
+		m_unk0x24 = Ogre::MaterialManager::getSingleton().create(name, "adorn3d");
+		Ogre::Pass* pass = m_unk0x24->getTechnique(0)->getPass(0);
+		pass->setAmbient(color.r, color.g, color.b);
+		pass->setDiffuse(color.r, color.g, color.b, color.a);
+		pass->setSpecular(color.r, color.g, color.b, color.a);
+		pass->setShininess(10.0f);
+		m_unk0x24->setLightingEnabled(true);
+	}
 }
 
 // FUNCTION: ROBLOX 0x0066b450
@@ -365,7 +397,7 @@ void AdornRbxGfx::finishRenderPass()
 	FUN_0066c190();
 }
 
-// STUB: ROBLOX 0x0066c2f0
+// FUNCTION: ROBLOX 0x0066c2f0
 void AdornRbxGfx::box(const G3D::AABox& box, const G3D::Color4& solid, const G3D::Color4& wire)
 {
 	IndexBox indexBox(G3D::Vector3(-1.0f, -1.0f, -1.0f), G3D::Vector3(1.0f, 1.0f, 1.0f));
@@ -407,9 +439,8 @@ void AdornRbxGfx::box(const G3D::AABox& box, const G3D::Color4& solid, const G3D
 			Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME
 		);
 		FUN_0066bf20(std::string(key), mesh);
-		m_unk0x34->FUN_0067b2b0(
-			mesh->getSubMesh(0), Ogre::Sphere(mesh->getBounds().getCenter(), mesh->getBoundingSphereRadius())
-		);
+		Ogre::Sphere bounds(mesh->getBounds().getCenter(), mesh->getBoundingSphereRadius());
+		m_unk0x34->FUN_0067b2b0(mesh->getSubMesh(0), bounds);
 	}
 
 	Ogre::Matrix4 local;
@@ -426,16 +457,86 @@ void AdornRbxGfx::box(const G3D::AABox& box, const G3D::Color4& solid, const G3D
 	FUN_0066c220(mesh, transform * local, m_unk0x38);
 }
 
-// STUB: ROBLOX 0x0066ca20
+// FUNCTION: ROBLOX 0x0066ca20
 void AdornRbxGfx::cylinderAlongX(float radius, float length, const G3D::Color4& solid, const G3D::Color4& wire)
 {
-	STUB(0x66ca20);
+	Ogre::Sphere bounds(
+		Ogre::Vector3(m_unk0x94.translation + G3D::Vector3(length * 0.5, 0.0f, 0.0f)),
+		radius > length ? radius * 1.4f : length * 1.4f
+	);
+	if (!m_unk0x04->m_unk0x08->isVisible(bounds, NULL)) {
+		return;
+	}
+
+	FUN_0066aae0(solid, 0);
+	Ogre::Unknown0067eb00 quadric;
+	if (g_unk0x00961300.isNull()) {
+		Ogre::ManualObject* manual =
+			quadric.FUN_0067ecc0(m_unk0x04->getSceneManager(), "cyl" + FUN_0066a3c0(), NULL, 1.0f, 1.0f, 1.0f, 12, 1);
+		quadric.FUN_0067eae0(Ogre::Vector3(0.0f, 0.0f, 1.0f));
+		quadric.FUN_00685580(m_unk0x04->getSceneManager(), "dsk" + FUN_0066a3c0(), manual, 0.0f, 1.0f, 12, 1);
+		quadric.FUN_0067eae0(Ogre::Vector3(0.0f, 0.0f, 0.0f));
+		quadric.orientation = 1;
+		quadric.FUN_00685580(m_unk0x04->getSceneManager(), "dsk" + FUN_0066a3c0(), manual, 0.0f, 1.0f, 12, 1);
+		manual->setMaterialName(0, m_unk0x24->getName());
+		manual->setMaterialName(1, m_unk0x24->getName());
+		manual->setMaterialName(2, m_unk0x24->getName());
+		g_unk0x00961300 = manual->convertToMesh(
+			m_unk0x04->getSceneManager()->getName() + g_unk0x00961318,
+			Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME
+		);
+		Ogre::Sphere meshBounds(g_unk0x00961300->getBounds().getCenter(), g_unk0x00961300->getBoundingSphereRadius());
+		for (int i = 0; i < g_unk0x00961300->getNumSubMeshes(); i++) {
+			m_unk0x34->FUN_0067b2b0(g_unk0x00961300->getSubMesh(i), meshBounds);
+		}
+	}
+
+	Ogre::Matrix4 world;
+	FUN_0066a360(world);
+
+	Ogre::Matrix4 local;
+	local.makeTransform(
+		Ogre::Vector3(-length * 0.5, 0.0f, 0.0f),
+		Ogre::Vector3(radius, radius, length),
+		Ogre::Quaternion(Ogre::Radian(Ogre::Degree(90.0f)), Ogre::Vector3(0.0f, 1.0f, 0.0f))
+	);
+
+	FUN_0066c220(g_unk0x00961300, world * local, m_unk0x24);
 }
 
-// STUB: ROBLOX 0x0066cf50
+// FUNCTION: ROBLOX 0x0066cf50
 void AdornRbxGfx::sphere(const G3D::Sphere& sphere, const G3D::Color4& solid, const G3D::Color4& wire)
 {
-	STUB(0x66cf50);
+	Ogre::Unknown0067eb00 quadric;
+	FUN_0066aae0(G3D::Color4(0.8f * solid.r, 0.8f * solid.g, 0.8f * solid.b, 0.8f * solid.a), 0);
+
+	std::string key("sph0001");
+	Ogre::MeshPtr mesh = FUN_0066b450(key);
+	if (mesh.isNull()) {
+		Ogre::ManualObject* manual =
+			quadric.FUN_00682ad0(m_unk0x04->getSceneManager(), "sph" + FUN_0066a3c0(), NULL, 1.0f, 17, 17);
+		for (int i = 0; i < (int) manual->getNumSections(); i++) {
+			manual->setMaterialName(i, m_unk0x24->getName());
+		}
+		mesh = manual->convertToMesh(
+			m_unk0x04->m_unk0x04->getName() + "smsh" + Ogre::StringConverter::toString(m_unk0x64.size()),
+			Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME
+		);
+		m_unk0x64[key] = mesh;
+		Ogre::Sphere bounds(mesh->getBounds().getCenter(), mesh->getBoundingSphereRadius());
+		for (int i = 0; i < mesh->getNumSubMeshes(); i++) {
+			m_unk0x34->FUN_0067b2b0(mesh->getSubMesh(i), bounds);
+		}
+	}
+
+	Ogre::Matrix4 transform;
+	FUN_0066a2d0(
+		transform,
+		Ogre::Vector3(sphere.center.x, sphere.center.y, sphere.center.z),
+		Ogre::Vector3(sphere.radius, sphere.radius, sphere.radius),
+		Ogre::Quaternion()
+	);
+	FUN_0066c220(mesh, transform, m_unk0x24);
 }
 
 // STUB: ROBLOX 0x0066d350
@@ -447,13 +548,118 @@ void AdornRbxGfx::quad(
 	const G3D::Color4& color
 )
 {
-	STUB(0x66d350);
+	float height = v0.y - v2.y;
+	float depth = v0.z - v2.z;
+	if (height < 0.0f) {
+		height = -height;
+	}
+	if (depth < 0.0f) {
+		depth = -depth;
+	}
+	float size = depth < height ? height : depth;
+
+	G3D::Vector3 center(v0.x, (v0.y + v1.y + v2.y + v3.y) * 0.25, (v0.z + v1.z + v2.z + v3.z) * 0.25);
+	Ogre::Sphere bounds(Ogre::Vector3(m_unk0x94.translation + center), size * 1.4f);
+	Ogre::Vector3 offset =
+		reinterpret_cast<const Ogre::Vector3&>(m_unk0x94.translation) - m_unk0x04->m_unk0x08->getDerivedPosition();
+	if (!m_unk0x04->m_unk0x08->isVisible(bounds, NULL)) {
+		return;
+	}
+
+	if (offset.squaredLength() > size * size * 60.0 * 60.0) {
+		return;
+	}
+
+	FUN_0066aae0(color, 0);
+	if (v0.x != v1.x || v1.x != v2.x || v2.x != v3.x) {
+		throw std::runtime_error("Bad: quad not handled");
+	}
+
+	if (g_unk0x0096130c.isNull()) {
+		Ogre::ManualObject* manual = m_unk0x04->getSceneManager()->createManualObject("ln" + FUN_0066a3c0());
+		manual->begin("", Ogre::RenderOperation::OT_TRIANGLE_LIST);
+		manual->position(0.0f, 0.5f, 0.5f);
+		manual->normal(Ogre::Vector3(1.0f, 0.0f, 0.0f));
+		manual->index(0);
+		manual->position(0.0f, -0.5f, 0.5f);
+		manual->normal(Ogre::Vector3(1.0f, 0.0f, 0.0f));
+		manual->index(1);
+		manual->position(0.0f, -0.5f, -0.5f);
+		manual->normal(Ogre::Vector3(1.0f, 0.0f, 0.0f));
+		manual->index(2);
+		manual->position(0.0f, 0.5f, 0.5f);
+		manual->normal(Ogre::Vector3(1.0f, 0.0f, 0.0f));
+		manual->index(3);
+		manual->position(0.0f, -0.5f, -0.5f);
+		manual->normal(Ogre::Vector3(1.0f, 0.0f, 0.0f));
+		manual->index(4);
+		manual->position(0.0f, 0.5f, -0.5f);
+		manual->normal(Ogre::Vector3(1.0f, 0.0f, 0.0f));
+		manual->index(5);
+		manual->end();
+		g_unk0x0096130c = manual->convertToMesh(
+			m_unk0x04->getSceneManager()->getName() + g_unk0x009612ac,
+			Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME
+		);
+		Ogre::Sphere meshBounds(g_unk0x0096130c->getBounds().getCenter(), g_unk0x0096130c->getBoundingSphereRadius());
+		m_unk0x34->FUN_0067b2b0(g_unk0x0096130c->getSubMesh(0), meshBounds);
+	}
+
+	Ogre::Matrix4 transform;
+	FUN_0066a360(transform);
+	Ogre::Matrix4 local;
+	local.makeTransform(
+		reinterpret_cast<const Ogre::Vector3&>(center),
+		Ogre::Vector3(1.0f, v2.y - v0.y, v2.z - v0.z),
+		Ogre::Quaternion()
+	);
+	transform = transform * local;
+	FUN_0066c220(g_unk0x0096130c, transform, m_unk0x24);
 }
 
-// STUB: ROBLOX 0x0066da00
+// FUNCTION: ROBLOX 0x0066da00
 void AdornRbxGfx::ray(const G3D::Ray& ray, const G3D::Color4& color, float scale)
 {
-	STUB(0x66da00);
+	FUN_0066aae0(color, 0);
+	Ogre::Unknown0067eb00 quadric;
+
+	std::string key("ray0001");
+	Ogre::MeshPtr mesh = FUN_0066b450(key);
+	if (mesh.isNull()) {
+		Ogre::Unknown0067eb00 quadric;
+		Ogre::ManualObject* manual =
+			quadric.FUN_0067ecc0(m_unk0x04->getSceneManager(), FUN_0066a3c0(), NULL, 0.05f, 0.05f, 1.0f, 12, 1);
+		quadric.FUN_0067eae0(Ogre::Vector3(0.0f, 0.0f, 1.0f));
+		quadric.FUN_0067ecc0(m_unk0x04->getSceneManager(), FUN_0066a3c0(), manual, 0.15f, 0.0f, 0.3f, 12, 1);
+		quadric.orientation = 1;
+		quadric.FUN_00685580(m_unk0x04->getSceneManager(), FUN_0066a3c0(), manual, 0.0f, 0.15f, 12, 1);
+		quadric.FUN_0067eae0(Ogre::Vector3(0.0f, 0.0f, 0.0f));
+		quadric.FUN_00685580(m_unk0x04->getSceneManager(), FUN_0066a3c0(), manual, 0.0f, 0.05f, 12, 1);
+		for (int i = 0; i < 4; i++) {
+			manual->setMaterialName(i, m_unk0x24->getName());
+		}
+		mesh = manual->convertToMesh(
+			m_unk0x04->m_unk0x04->getName() + "amsh" + Ogre::StringConverter::toString(m_unk0x64.size()),
+			Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME
+		);
+		m_unk0x64[key] = mesh;
+		Ogre::Sphere bounds(mesh->getBounds().getCenter(), mesh->getBoundingSphereRadius());
+		for (int i = 0; i < mesh->getNumSubMeshes(); i++) {
+			m_unk0x34->FUN_0067b2b0(mesh->getSubMesh(i), bounds);
+		}
+	}
+
+	float length = ray.direction.magnitude() / 1.3f;
+	Ogre::Quaternion rotation =
+		Ogre::Vector3(0.0f, 0.0f, 1.0f).getRotationTo(Ogre::Vector3(ray.direction.x, ray.direction.y, ray.direction.z));
+	Ogre::Matrix4 transform;
+	FUN_0066a2d0(
+		transform,
+		Ogre::Vector3(ray.origin.x, ray.origin.y, ray.origin.z),
+		Ogre::Vector3(length * 0.5, length * 0.5, length),
+		rotation
+	);
+	FUN_0066c220(mesh, transform, m_unk0x24);
 }
 
 void AdornRbxGfx::drawFlag(const G3D::Vector3& position, const G3D::Vector3& offset, const G3D::Color4& color, float scale)
@@ -488,7 +694,7 @@ AdornRbxGfx::~AdornRbxGfx()
 	m_unk0x88.clear();
 }
 
-// STUB: ROBLOX 0x0066e3b0
+// FUNCTION: ROBLOX 0x0066e3b0
 AdornRbxGfx::AdornRbxGfx(Ogre::VisualEngine* visualEngine) : m_unk0x08(""), m_unk0x74(NULL)
 {
 	m_unk0x04 = visualEngine;
@@ -506,18 +712,19 @@ AdornRbxGfx::AdornRbxGfx(Ogre::VisualEngine* visualEngine) : m_unk0x08(""), m_un
 	m_unk0x30 = m_unk0x04->getSceneManager()->createSceneNode(name);
 	m_unk0x04->getSceneManager()->getRootSceneNode()->addChild(m_unk0x30);
 
-	m_unk0x34 = new Ogre::RbxSceneNode(visualEngine->m_unk0x04, std::string(name) + "opt");
+	m_unk0x34 = new Ogre::RbxSceneNode(visualEngine->getSceneManager(), std::string(name) + "opt");
 	m_unk0x04->getSceneManager()->getRootSceneNode()->addChild(m_unk0x34);
 
 	m_unk0x70 = new Ogre::RbxEntity();
 	m_unk0x70->m_unk0x244 = false;
 	m_unk0x70->m_unk0x246 = false;
-	m_unk0x70->FUN_00674e30(&m_unk0x04->m_unk0x18);
+	Ogre::VisualEngine* engine = m_unk0x04;
+	m_unk0x70->FUN_00674e30(&engine->getUnk0x18());
 	m_unk0x34->attachObject(m_unk0x70);
 
 	Ogre::MeshPtr mesh = Ogre::MeshManager::getSingleton().getByName("rbxdummymesh");
 	if (mesh.isNull()) {
-		mesh = Ogre::MeshManager::getSingleton().create("rbxdummymesh", "General");
+		mesh = Ogre::MeshManager::getSingleton().createOrRetrieve("rbxdummymesh", "General").first;
 	}
 	m_unk0x70->FUN_00674e40(mesh);
 
@@ -526,13 +733,14 @@ AdornRbxGfx::AdornRbxGfx(Ogre::VisualEngine* visualEngine) : m_unk0x08(""), m_un
 	m_unk0x38->setLightingEnabled(false);
 }
 
-// STUB: ROBLOX 0x0066e8e0
+// FUNCTION: ROBLOX 0x0066e8e0
 void AdornRbxGfx::explosion(const G3D::Sphere& sphere, const G3D::Color4& solid, const G3D::Color4& wire)
 {
 	Ogre::Vector3 position;
 	{
 		Ogre::Quaternion orientation;
-		orientation.FromRotationMatrix(reinterpret_cast<const Ogre::Matrix3&>(m_unk0x94.rotation));
+		const Ogre::Matrix3& rotation = reinterpret_cast<const Ogre::Matrix3&>(m_unk0x94.rotation);
+		orientation.FromRotationMatrix(rotation);
 		position =
 			m_unk0x30->createChildSceneNode(reinterpret_cast<const Ogre::Vector3&>(m_unk0x94.translation), orientation)
 				->getPosition();
@@ -549,7 +757,11 @@ void AdornRbxGfx::explosion(const G3D::Sphere& sphere, const G3D::Color4& solid,
 			static_cast<Ogre::ParticleSystem*>(m_unk0x88[key]->getAttachedObject((unsigned short) 0));
 		if (particleSystem->getNumParticles() == 0) {
 			Ogre::ParticleEmitter* emitter = particleSystem->getEmitter(0);
-			setExplosionScale(particleSystem, emitter, 1.0f);
+			particleSystem->setParticleQuota((size_t) (atoi("400") * 1.0f));
+			emitter->setMinParticleVelocity(pow(1.0f, 1.0f / 3.0f) * atoi("20"));
+			emitter->setMaxParticleVelocity(pow(1.0f, 1.0f / 3.0f) * atoi("30"));
+			emitter->setMinDuration((1.0f - 1.0) * 0.4f + atoi("1.2"));
+			emitter->setMaxDuration((1.0f - 1.0) * 0.4f + atoi("1.2"));
 			emitter->setEnabled(false);
 			m_unk0x88.erase(m_unk0x88.find(key));
 		}
@@ -557,7 +769,8 @@ void AdornRbxGfx::explosion(const G3D::Sphere& sphere, const G3D::Color4& solid,
 	}
 
 	std::vector<std::map<std::string, Ogre::SceneNode*>::iterator> retired;
-	for (std::map<std::string, Ogre::SceneNode*>::iterator it = m_unk0x88.begin(); it != m_unk0x88.end(); ++it) {
+	std::map<std::string, Ogre::SceneNode*>::iterator it;
+	for (it = m_unk0x88.begin(); it != m_unk0x88.end(); ++it) {
 		Ogre::ParticleSystem* particleSystem =
 			static_cast<Ogre::ParticleSystem*>(it->second->getAttachedObject((unsigned short) 0));
 		if (particleSystem->getNumParticles() == 0) {
@@ -572,7 +785,11 @@ void AdornRbxGfx::explosion(const G3D::Sphere& sphere, const G3D::Color4& solid,
 		emitter->setEnabled(false);
 		m_unk0x88.erase(retired[i]);
 		Ogre::LogManager::getSingleton().logMessage("RBX retired " + particleSystem->getName());
-		setExplosionScale(particleSystem, emitter, 1.0f);
+		particleSystem->setParticleQuota((size_t) (atoi("400") * 1.0f));
+		emitter->setMinParticleVelocity(pow(1.0f, 1.0f / 3.0f) * atoi("20"));
+		emitter->setMaxParticleVelocity(pow(1.0f, 1.0f / 3.0f) * atoi("30"));
+		emitter->setMinDuration((1.0f - 1.0) * 0.4f + atoi("1.2"));
+		emitter->setMaxDuration((1.0f - 1.0) * 0.4f + atoi("1.2"));
 	}
 
 	float scale = sphere.radius * 0.25;
@@ -586,13 +803,16 @@ void AdornRbxGfx::explosion(const G3D::Sphere& sphere, const G3D::Color4& solid,
 		Ogre::ParticleSystem* particleSystem =
 			static_cast<Ogre::ParticleSystem*>(m_unk0x78[i]->getAttachedObject((unsigned short) 0));
 		if (!particleSystem->getEmitter(0)->getEnabled()) {
-			Ogre::SceneNode* sceneNode = m_unk0x78[i];
-			node = sceneNode;
-			m_unk0x88[key] = sceneNode;
-			sceneNode->setPosition(position.x, position.y, position.z);
-			particleSystem = static_cast<Ogre::ParticleSystem*>(sceneNode->getAttachedObject((unsigned short) 0));
+			node = m_unk0x78[i];
+			m_unk0x88[key] = node;
+			node->setPosition(position.x, position.y, position.z);
+			particleSystem = static_cast<Ogre::ParticleSystem*>(node->getAttachedObject((unsigned short) 0));
 			Ogre::ParticleEmitter* emitter = particleSystem->getEmitter(0);
-			setExplosionScale(particleSystem, emitter, scale);
+			particleSystem->setParticleQuota((size_t) (atoi("400") * scale));
+			emitter->setMinParticleVelocity(pow(scale, 1.0f / 3.0f) * atoi("20"));
+			emitter->setMaxParticleVelocity(pow(scale, 1.0f / 3.0f) * atoi("30"));
+			emitter->setMinDuration((scale - 1.0) * 0.4f + atoi("1.2"));
+			emitter->setMaxDuration((scale - 1.0) * 0.4f + atoi("1.2"));
 			emitter->setEnabled(true);
 			particleSystem->_update(0.001f);
 			Ogre::LogManager::getSingleton().logMessage("RBX use " + particleSystem->getName());
@@ -618,12 +838,13 @@ void AdornRbxGfx::explosion(const G3D::Sphere& sphere, const G3D::Color4& solid,
 
 		if (!m_unk0x74) {
 			m_unk0x74 = m_unk0x04->getSceneManager()->getRootSceneNode()->createChildSceneNode(
-				m_unk0x04->m_unk0x04->getName() + "rbxexpl", Ogre::Vector3::ZERO, Ogre::Quaternion::IDENTITY
+				m_unk0x04->getSceneManager()->getName() + "rbxexpl", Ogre::Vector3::ZERO, Ogre::Quaternion::IDENTITY
 			);
 		}
 
 		Ogre::ParticleSystem* particleSystem = m_unk0x04->getSceneManager()->createParticleSystem(
-			m_unk0x04->m_unk0x04->getName() + "expl" + Ogre::StringConverter::toString(i), "explosion/explosion1"
+			m_unk0x04->getSceneManager()->getName() + "expl" + Ogre::StringConverter::toString(i),
+			"explosion/explosion1"
 		);
 		if (!particleSystem) {
 			Ogre::LogManager::getSingleton().logMessage("RBX Error creating psys");
@@ -631,12 +852,15 @@ void AdornRbxGfx::explosion(const G3D::Sphere& sphere, const G3D::Color4& solid,
 		}
 
 		Ogre::ParticleEmitter* emitter = particleSystem->getEmitter(0);
-		setExplosionScale(particleSystem, emitter, scale);
-		Ogre::SceneNode* sceneNode = m_unk0x74->createChildSceneNode(Ogre::Vector3::ZERO, Ogre::Quaternion::IDENTITY);
-		node = sceneNode;
-		sceneNode->attachObject(particleSystem);
-		m_unk0x78.push_back(sceneNode);
-		m_unk0x88[key] = sceneNode;
+		particleSystem->setParticleQuota((size_t) (atoi("400") * scale));
+		emitter->setMinParticleVelocity(pow(scale, 1.0f / 3.0f) * atoi("20"));
+		emitter->setMaxParticleVelocity(pow(scale, 1.0f / 3.0f) * atoi("30"));
+		emitter->setMinDuration((scale - 1.0) * 0.4f + atoi("1.2"));
+		emitter->setMaxDuration((scale - 1.0) * 0.4f + atoi("1.2"));
+		node = m_unk0x74->createChildSceneNode(Ogre::Vector3::ZERO, Ogre::Quaternion::IDENTITY);
+		node->attachObject(particleSystem);
+		m_unk0x78.push_back(node);
+		m_unk0x88[key] = node;
 		Ogre::LogManager::getSingleton().logMessage("RBX created " + particleSystem->getName());
 	}
 

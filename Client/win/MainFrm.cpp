@@ -227,7 +227,7 @@ void CMainFrame::OnWindowPosChanging(WINDOWPOS* lpwndpos)
 	}
 }
 
-// STUB: ROBLOX 0x004331e0
+// FUNCTION: ROBLOX 0x004331e0
 static bool FUN_004331e0(CXTPImageManager* imageManager, UINT id, LPCTSTR name, XTPImageState state)
 {
 	HINSTANCE instance = AfxFindResourceHandle(name, "PNG");
@@ -262,12 +262,15 @@ static bool FUN_004331e0(CXTPImageManager* imageManager, UINT id, LPCTSTR name, 
 		return false;
 	}
 	bitmap.FUN_00445c70();
+	const G3D::uint8* source = image.byte();
 	for (int y = 0; y < image.height; y++) {
-		memcpy(bitmap.FUN_00445c40(0, y), image.byte() + y * image.width * 4, image.width * 4);
+		void* row = bitmap.FUN_00445c40(0, y);
+		const G3D::uint8* from = source + y * image.width * 4;
+		memcpy(row, from, image.width * 4);
 	}
-	BOOL result = imageManager->SetIcon(CXTPImageManagerIconHandle((HBITMAP) bitmap), id, CSize(0, 0), state);
+	bool result = imageManager->SetIcon(CXTPImageManagerIconHandle((HBITMAP) bitmap), id, CSize(0, 0), state) != FALSE;
 	FreeResource(global);
-	return result != FALSE;
+	return result;
 }
 
 // FUNCTION: ROBLOX 0x004333d0
@@ -791,10 +794,25 @@ void CMainFrame::FUN_00435460(NMHDR* pNMHDR, LRESULT* pResult)
 	}
 }
 
-// STUB: ROBLOX 0x00435570
+// FUNCTION: ROBLOX 0x00435570
 void CMainFrame::FUN_00435570(NMHDR* pNMHDR, LRESULT* pResult)
 {
-	STUB(0x435570);
+	CRobloxControlColorSelector* control =
+		static_cast<CRobloxControlColorSelector*>(((NMXTPCONTROL*) pNMHDR)->pControl);
+
+	G3D::Color3uint8 color;
+	color.r = GetRValue(control->GetColor());
+	color.g = GetGValue(control->GetColor());
+	color.b = GetBValue(control->GetColor());
+	RBX::FillTool::color.set(RBX::BrickColor::closest(color));
+
+	if (ActiveDocView::FUN_00434840()) {
+		RBX::DataModel::Lock lock(ActiveDocView::FUN_00434840());
+		RBX::Verb* verb = ActiveDocView::FUN_00434840()->getVerb("FillTool");
+		verb->doIt(ActiveDocView::FUN_00434840().get());
+	}
+
+	*pResult = 1;
 }
 
 // FUNCTION: ROBLOX 0x004357d0
@@ -823,9 +841,8 @@ LRESULT CMainFrame::FUN_004357f0(WPARAM wParam, LPARAM lParam)
 					}
 
 					m_unk0x398.reset(new CSelectionCaption);
-					CRect captionRect(0, 0, 0, 0);
 					if (!m_unk0x398->Create(
-							m_unk0x390.get(), "", 2, 0x10000201, captionRect, m_unk0x390->IdFromRowCol(0, 0)
+							m_unk0x390.get(), "", 2, 0x10000201, CRect(0, 0, 0, 0), m_unk0x390->IdFromRowCol(0, 0)
 						)) {
 						return -1;
 					}
@@ -1125,3 +1142,9 @@ void CMainFrame::OnPaint()
 {
 	Default();
 }
+
+template const RBX::FactoryProduct<RBX::Accoutrement, RBX::Instance, RBX::sAccoutrement>::Creator
+	RBX::FactoryProduct<RBX::Accoutrement, RBX::Instance, RBX::sAccoutrement>::creator;
+
+template const RBX::FactoryProduct<RBX::Hat, RBX::Accoutrement, RBX::sHat>::Creator
+	RBX::FactoryProduct<RBX::Hat, RBX::Accoutrement, RBX::sHat>::creator;

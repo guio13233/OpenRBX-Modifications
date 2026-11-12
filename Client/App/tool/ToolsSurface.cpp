@@ -4,7 +4,10 @@
 #include "humanoid/Humanoid.h"
 #include "rbxgraphics/Adorn.h"
 #include "tool/DragTool.h"
+#include "tool/DragUtilities.h"
+#include "tool/Dragger.h"
 #include "tool/GrabTool.h"
+#include "tool/MegaDragger.h"
 #include "tool/PartDragTool.h"
 #include "util/ContentProvider.h"
 #include "util/Math.h"
@@ -12,6 +15,7 @@
 #include "util/SoundWorld.h"
 #include "util/Units.h"
 #include "v8datamodel/Commands.h"
+#include "v8datamodel/DataModel.h"
 #include "v8datamodel/Explosion.h"
 #include "v8datamodel/ModelInstance.h"
 #include "v8datamodel/PartInstance.h"
@@ -19,6 +23,7 @@
 #include "v8datamodel/Workspace.h"
 #include "v8kernel/Constants.h"
 #include "v8tree/Service.h"
+#include "v8xml/SerializerV2.h"
 
 #include <G3D/CoordinateFrame.h>
 #include <G3D/LineSegment.h>
@@ -84,6 +89,9 @@ char sCloneTool[] = "Clone";
 
 // GLOBAL: ROBLOX 0x00948d48
 char sGameTool[] = "GameTool";
+
+// GLOBAL: ROBLOX 0x00948da0
+char sAxisMoveTool[] = "AxisMove";
 
 // FUNCTION: ROBLOX 0x00639820
 void FlatTool::VTable0x40(Surface* surface)
@@ -258,20 +266,30 @@ void ModelTool::render3dAdorn(Adorn* adorn)
 	}
 }
 
-// STUB: ROBLOX 0x00639eb0
+// FUNCTION: ROBLOX 0x00639eb0
 const std::string AnchorTool::getCursorName() const
 {
-	if (m_unk0x20 && m_unk0x28) {
-		return "UnAnchorCursor";
+	if (m_unk0x20) {
+		if (m_unk0x28) {
+			return "UnAnchorCursor";
+		}
+		else {
+			return "AnchorCursor";
+		}
 	}
 	return "AnchorCursor";
 }
 
-// STUB: ROBLOX 0x00639f00
+// FUNCTION: ROBLOX 0x00639f00
 const std::string LockTool::getCursorName() const
 {
-	if (m_unk0x20 && PartInstance::getLocked(m_unk0x20.get())) {
-		return "UnlockCursor";
+	if (m_unk0x20) {
+		if (PartInstance::getLocked(m_unk0x20.get())) {
+			return "UnlockCursor";
+		}
+		else {
+			return "LockCursor";
+		}
 	}
 	return "LockCursor";
 }
@@ -310,13 +328,20 @@ void ModelTool::onMouseHover(const UIEvent& uiEvent)
 	}
 }
 
-// STUB: ROBLOX 0x0063a2b0
+// FUNCTION: ROBLOX 0x0063a2b0
 void AnchorTool::onMouseHover(const UIEvent& uiEvent)
 {
 	boost::shared_ptr<Instance> oldInstance = m_unk0x20;
 	ModelTool::onMouseHover(uiEvent);
 	if (oldInstance != m_unk0x20) {
-		m_unk0x28 = m_unk0x20 && !FUN_0063a090(m_unk0x20.get());
+		bool anchored;
+		if (m_unk0x20) {
+			anchored = FUN_0063a090(m_unk0x20.get()) == NULL;
+		}
+		else {
+			anchored = false;
+		}
+		m_unk0x28 = anchored;
 	}
 }
 
@@ -369,24 +394,27 @@ PV SlingshotTool::VTable0x44(const UIEvent& uiEvent, const CoordinateFrame& cfra
 	PartInstance* part = getPart(uiEvent, NULL, hitWorld);
 	G3D::Vector3 direction = part ? (hitWorld - cframe.translation).direction() : cframe.lookVector();
 	G3D::Vector3 position = cframe.translation + direction * 3.0f;
-	if (part) {
-		direction = hitWorld - position;
-		float height = direction.y;
-		direction.y = 0.0f;
-		float distance = direction.unitize();
+	if (!part) {
+		CoordinateFrame frame(position);
+		return PV(frame, Velocity(direction * 85.0f, G3D::Vector3::zero()));
+	}
+	else {
+		G3D::Vector3 delta = hitWorld - position;
+		float height = delta.y;
+		delta.y = 0.0f;
+		float distance = delta.unitize();
 		float angle = Math::computeLaunchAngle(
 			85.0f, distance, height, Units::kmsAccelerationToRbx(Constants::getKmsGravity()).y
 		);
-		direction.y = sin(angle);
-		direction.x *= cos(angle);
-		direction.z *= cos(angle);
+		delta.y = sin(angle);
+		delta.x *= cos(angle);
+		delta.z *= cos(angle);
+		CoordinateFrame frame(position);
+		return PV(frame, Velocity(delta * 85.0f, G3D::Vector3::zero()));
 	}
-
-	CoordinateFrame frame(position);
-	return PV(frame, Velocity(direction * 85.0f, G3D::Vector3::zero()));
 }
 
-// STUB: ROBLOX 0x0063a740
+// FUNCTION: ROBLOX 0x0063a740
 PV RocketTool::VTable0x44(const UIEvent& uiEvent, const CoordinateFrame& cframe)
 {
 	G3D::Vector3 hitWorld;
@@ -394,7 +422,7 @@ PV RocketTool::VTable0x44(const UIEvent& uiEvent, const CoordinateFrame& cframe)
 	G3D::Vector3 direction = part ? (hitWorld - cframe.translation).direction() : cframe.lookVector();
 	CoordinateFrame frame;
 	frame.lookAt(direction);
-	frame.translation = cframe.translation + direction * 5.0f;
+	frame.translation = cframe.translation + 5.0f * direction;
 	return PV(frame, Velocity::zero());
 }
 
@@ -467,48 +495,118 @@ void ResizeTool::VTable0x40(XmlState* state)
 {
 	boost::shared_ptr<PVInstance> locked = m_unk0x24.lock();
 	if (PartInstance* part = dynamic_cast<PartInstance*>(locked.get())) {
-		part->FUN_005ad310(state);
+		part->writeResizeData(state);
 	}
 }
 
-// STUB: ROBLOX 0x0063ae70
+// FUNCTION: ROBLOX 0x0063ae70
 MouseCommand* ResizeTool::onMouseUp(const UIEvent& uiEvent)
 {
-	STUB(0x63ae70);
+	if (captured()) {
+		releaseCapture();
+		if (!m_unk0x24.expired()) {
+			std::auto_ptr<RedoState> redoState(new RedoState());
+			VTable0x40(redoState.get());
+			XmlState* undo = undoState.release();
+			XmlState* redo = redoState.release();
+			IDataState& dataState = workspace->getDataState();
+			const Name& name = getName();
+			dataState.pushState(name.toString(), undo, redo);
+			workspace->getDataState().setDirty(true);
+		}
+	}
 	return NULL;
 }
 
-// STUB: ROBLOX 0x0063af80
-void ResizeTool::FUN_0063af80()
+// FUNCTION: ROBLOX 0x0063af80
+void ResizeTool::FUN_0063af80(int p_unk0x04)
 {
-	STUB(0x63af80);
+	if (!m_unk0x24.expired()) {
+		PartInstance* part = static_cast<PartInstance*>(m_unk0x24.lock().get());
+		part->destroyJoints();
+		if (part->resize(m_unk0x30, p_unk0x04)) {
+			ServiceProvider::create<Soundscape::SoundService>(workspace)->playSound(CLICK_SOUND);
+		}
+		part->join();
+	}
 }
 
 // STUB: ROBLOX 0x0063b020
 void ResizeTool::onMouseMove(const UIEvent& uiEvent)
 {
-	STUB(0x63b020);
+	if (!m_unk0x24.expired()) {
+		G3D::Vector3 axis = Math::getWorldNormal(m_unk0x30, m_unk0x24.lock()->getLocation());
+		G3D::Ray handleRay = G3D::Ray::fromOriginAndDirection(m_unk0x34, axis);
+		G3D::Ray mouseRay = getUnitMouseRay(uiEvent);
+		G3D::Vector3 closest = Math::closestPointOnRay(handleRay, mouseRay);
+		float distance = (closest - m_unk0x34).dot(handleRay.direction) - m_unk0x44;
+		if (distance > 1.0f) {
+			int amount = G3D::iRound(floor(distance));
+			m_unk0x44 += amount;
+			FUN_0063af80(amount);
+		}
+		if (distance < -1.0f) {
+			int amount = -G3D::iRound(floor(-distance));
+			m_unk0x44 += amount;
+			FUN_0063af80(amount);
+		}
+	}
 }
 
-// STUB: ROBLOX 0x0063b240
+// FUNCTION: ROBLOX 0x0063b240
 void ResizeTool::FUN_0063b240(const UIEvent& uiEvent)
 {
-	STUB(0x63b240);
+	ServiceClient<Selection> selection(workspace);
+	std::vector<boost::shared_ptr<Instance> >::const_iterator it;
+	for (it = selection->begin(); it != selection->end(); ++it) {
+		if (PartInstance* part = dynamic_cast<PartInstance*>(it->get())) {
+			G3D::Ray ray = getUnitMouseRay(uiEvent);
+			if (FUN_00662530(part->getExtentsLocal(), part->getLocation(), ray, m_unk0x34, m_unk0x30)) {
+				m_unk0x24 = shared_from(part);
+				return;
+			}
+		}
+	}
+	m_unk0x24.reset();
 }
 
-// STUB: ROBLOX 0x0063b4b0
+// FUNCTION: ROBLOX 0x0063b4b0
 void ResizeTool::render3dAdorn(Adorn* adorn)
 {
-	STUB(0x63b4b0);
+	ServiceClient<Selection> selection(workspace);
+	std::vector<boost::shared_ptr<Instance> >::const_iterator it;
+	for (it = selection->begin(); it != selection->end(); ++it) {
+		if (PartInstance* part = dynamic_cast<PartInstance*>(it->get())) {
+			DrawAdorn::handles3d(
+				part->getPartSizeXml(),
+				part->getCoordinateFrame(),
+				adorn,
+				HANDLE_RESIZE,
+				workspace->getGCamera().getCoordinateFrame().translation
+			);
+		}
+	}
 }
 
-// STUB: ROBLOX 0x0063b620
+// FUNCTION: ROBLOX 0x0063b620
 void ResizeTool::render2d(Adorn* adorn)
 {
-	STUB(0x63b620);
+	ServiceClient<Selection> selection(workspace);
+	std::vector<boost::shared_ptr<Instance> >::const_iterator it;
+	for (it = selection->begin(); it != selection->end(); ++it) {
+		if (PartInstance* part = dynamic_cast<PartInstance*>(it->get())) {
+			DrawAdorn::handles2d(
+				part->getPartSizeXml(),
+				part->getCoordinateFrame(),
+				workspace->getGCamera(),
+				adorn,
+				DrawAdorn::resizeColor()
+			);
+		}
+	}
 }
 
-// STUB: ROBLOX 0x0063b7c0
+// FUNCTION: ROBLOX 0x0063b7c0
 void ResizeTool::onMouseHover(const UIEvent& uiEvent)
 {
 	FUN_0063b240(uiEvent);
@@ -516,10 +614,21 @@ void ResizeTool::onMouseHover(const UIEvent& uiEvent)
 	ArrowToolBase::onMouseHover(uiEvent);
 }
 
-// STUB: ROBLOX 0x0063b800
+// FUNCTION: ROBLOX 0x0063b800
 MouseCommand* ResizeTool::onMouseDown(const UIEvent& uiEvent)
 {
-	STUB(0x63b800);
+	FUN_0063b240(uiEvent);
+	if (m_unk0x24.expired()) {
+		return ArrowToolBase::onMouseDown(uiEvent);
+	}
+
+	m_unk0x40 = uiEvent.mousePosition;
+	m_unk0x44 = 0;
+	m_unk0x48 = 0;
+	m_unk0x2c = true;
+	capture();
+	undoState.reset(new UndoState());
+	VTable0x40(undoState.get());
 	return this;
 }
 
@@ -709,6 +818,180 @@ GameTool::~GameTool()
 // FUNCTION: ROBLOX 0x0063c4c0
 GameTool::GameTool(Workspace* workspace) : Named<MouseCommand, sGameTool>(workspace)
 {
+}
+
+// FUNCTION: ROBLOX 0x0063c6b0
+AxisMoveTool::AxisMoveTool(Workspace* workspace)
+	: Named<ArrowToolBase, sAxisMoveTool>(workspace), cursor("ArrowCursor"), m_unk0x44(false)
+{
+}
+
+// FUNCTION: ROBLOX 0x0063c7f0
+MouseCommand* AxisMoveTool::onMouseUp(const UIEvent& uiEvent)
+{
+	if (m_unk0x44) {
+		dragger->finishDragging();
+		dragger.release();
+		m_unk0x44 = false;
+	}
+	releaseCapture();
+	return NULL;
+}
+
+// STUB: ROBLOX 0x0063c920
+void AxisMoveTool::onMouseMove(const UIEvent& uiEvent)
+{
+	if (!m_unk0x44) {
+		if ((G3D::Vector2(uiEvent.mousePosition) - G3D::Vector2(m_unk0x46)).length() > 4.0f) {
+			ServiceClient<FilteredSelection<PVInstance> > selection(workspace);
+			dragger.reset(new MegaDragger(NULL, selection->items(), workspace));
+			dragger->startDragging();
+			dragger->alignAndCleanParts();
+			m_unk0x44 = true;
+		}
+		if (!m_unk0x44) {
+			return;
+		}
+	}
+
+	if (dragger->anyDragPartAlive()) {
+		G3D::Vector3 closest = Math::closestPointOnRay(m_unk0x4c, getUnitMouseRay(uiEvent));
+		closest = Math::toGrid(closest, FUN_0063c5c0());
+		G3D::Vector3 delta = Math::toGrid(closest - m_unk0x6c, FUN_0063c5c0());
+		if (delta != G3D::Vector3::zero()) {
+			dragger->continueDragging();
+			G3D::Vector3 moved = dragger->safeMoveAlongLine(delta);
+			if (moved != G3D::Vector3::zero()) {
+				m_unk0x6c = Math::toGrid(m_unk0x6c + moved, FUN_0063c5c0());
+			}
+		}
+	}
+}
+
+// FUNCTION: ROBLOX 0x0063cc60
+bool AxisMoveTool::FUN_0063cc60(Extents& extents)
+{
+	ServiceClient<Selection> selection(workspace);
+	std::vector<Primitive*> primitives;
+	std::for_each(
+		selection->begin(), selection->end(), boost::bind(&DragUtilities::getPrimitives2, _1, boost::ref(primitives))
+	);
+	if (primitives.size() != 0) {
+		extents = Dragger::computeExtents(primitives);
+		return true;
+	}
+
+	return false;
+}
+
+// FUNCTION: ROBLOX 0x0063ce30
+bool AxisMoveTool::FUN_0063ce30(const UIEvent& uiEvent, G3D::Vector3& hitPoint, NormalId& normalId)
+{
+	Extents extents;
+	if (FUN_0063cc60(extents)) {
+		if (FUN_00662700(extents, getUnitMouseRay(uiEvent), hitPoint, normalId)) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// FUNCTION: ROBLOX 0x0063cf00
+MouseCommand* AxisMoveTool::onMouseDown(const UIEvent& uiEvent)
+{
+	G3D::Vector3 hitPoint;
+	NormalId normalId;
+	if (FUN_0063ce30(uiEvent, hitPoint, normalId)) {
+		m_unk0x46 = uiEvent.mousePosition;
+		m_unk0x68 = normalId % 3;
+		m_unk0x6c = Math::toGrid(hitPoint, FUN_0063c5c0());
+		m_unk0x4c = G3D::Ray::fromOriginAndDirection(m_unk0x6c, normalIdToVector3(normalId));
+		capture();
+		return this;
+	}
+
+	return ArrowToolBase::onMouseDown(uiEvent);
+}
+
+// FUNCTION: ROBLOX 0x0063d010
+void AxisMoveTool::render2d(Adorn* adorn)
+{
+	Extents extents;
+	if (FUN_0063cc60(extents)) {
+		CoordinateFrame location(extents.center());
+		G3D::Vector3 size = extents.size();
+		DrawAdorn::handles2d(size, location, workspace->getGCamera(), adorn, G3D::Color3::orange());
+	}
+}
+
+// STUB: ROBLOX 0x0063d120
+void AxisMoveTool::render3dAdorn(Adorn* adorn)
+{
+	Extents extents;
+	if (FUN_0063cc60(extents)) {
+		CoordinateFrame location(extents.center());
+		G3D::Vector3 size = extents.size();
+		DrawAdorn::handles3d(
+			size, location, adorn, HANDLE_MOVE, workspace->getGCamera().getCoordinateFrame().translation
+		);
+	}
+}
+
+// FUNCTION: ROBLOX 0x0063d240
+void AxisMoveTool::onMouseIdle(const UIEvent& uiEvent)
+{
+	ArrowToolBase::onMouseIdle(uiEvent);
+	if (captured()) {
+		cursor = "DragCursor";
+		return;
+	}
+
+	G3D::Vector3 hitPoint;
+	NormalId normalId;
+	if (FUN_0063ce30(uiEvent, hitPoint, normalId)) {
+		cursor = "ResizeCursor";
+	}
+	else {
+		cursor = ArrowToolBase::getCursorName();
+	}
+}
+
+// FUNCTION: ROBLOX 0x0063d320
+UndoVerb::UndoVerb(DataModel* dataModel) : Verb(dataModel, "Undo"), m_unk0x0c(dataModel)
+{
+}
+
+// FUNCTION: ROBLOX 0x0063d370
+RedoVerb::RedoVerb(DataModel* dataModel) : Verb(dataModel, "Redo"), m_unk0x0c(dataModel)
+{
+}
+
+// FUNCTION: ROBLOX 0x0063d3c0
+bool UndoVerb::isEnabled() const
+{
+	std::string name;
+	return m_unk0x0c->canUndo(name);
+}
+
+// FUNCTION: ROBLOX 0x0063d430
+void UndoVerb::doIt(IDataState* dataState)
+{
+	SerializerV2 serializer;
+	serializer.merge(m_unk0x0c->undo()->getData(), m_unk0x0c);
+}
+
+// FUNCTION: ROBLOX 0x0063d4a0
+bool RedoVerb::isEnabled() const
+{
+	std::string name;
+	return m_unk0x0c->canRedo(name);
+}
+
+// FUNCTION: ROBLOX 0x0063d510
+void RedoVerb::doIt(IDataState* dataState)
+{
+	SerializerV2 serializer;
+	serializer.merge(m_unk0x0c->redo()->getData(), m_unk0x0c);
 }
 
 } // namespace RBX

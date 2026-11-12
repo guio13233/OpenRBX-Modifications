@@ -530,6 +530,19 @@ void Unknown00597dd0::operator()(boost::shared_ptr<Instance> instance)
 	}
 }
 
+// FUNCTION: ROBLOX 0x00598da0
+void RotateAxisCommand::FUN_00598da0(const G3D::Matrix3& rotation, const std::vector<PVInstance*>& pvInstances)
+{
+	if (pvInstances.size() > 0) {
+		MegaDragger dragger(NULL, pvInstances, workspace.get());
+		dragger.startDragging();
+		dragger.safeRotate(rotation);
+		dragger.finishDragging();
+
+		workspace->raiseDrawChanged();
+	}
+}
+
 // FUNCTION: ROBLOX 0x00598e50
 RotateSelectionVerb::RotateSelectionVerb(DataModel* dataModel) : RotateAxisCommand("SelectionRotate", dataModel)
 {
@@ -597,6 +610,17 @@ DeleteBase::DeleteBase(VerbContainer* container, DataModel* dataModel, std::stri
 {
 }
 
+// SIZE 0x04
+class Unknown00598770
+{
+public:
+	Unknown00598770(Controller::ControllerType controllerType) : m_unk0x00(controllerType) {}
+
+	bool operator()(PVInstance* instance) const { return instance->getControllerType() != m_unk0x00; }
+
+	Controller::ControllerType m_unk0x00; // 0x00
+};
+
 // FUNCTION: ROBLOX 0x0059a410
 void ControllerCommand::setController(Controller::ControllerType controllerType)
 {
@@ -604,7 +628,7 @@ void ControllerCommand::setController(Controller::ControllerType controllerType)
 		dataModel ? dataModel->create<FilteredSelection<PVInstance> >() : NULL;
 
 	Controller::ControllerType newType =
-		filteredSelection->FUN_00598770(controllerType) ? controllerType : Controller::NO_CONTROLLER;
+		filteredSelection->FUN_00598690(Unknown00598770(controllerType)) ? controllerType : Controller::NO_CONTROLLER;
 
 	std::for_each(filteredSelection->begin(), filteredSelection->end(), boost::bind(&FUN_00596950, newType, _1));
 }
@@ -632,7 +656,7 @@ void GroupSelectionVerb::doIt(IDataState* dataState)
 	dataState->setDirty(true);
 }
 
-// STUB: ROBLOX 0x0059aaf0
+// FUNCTION: ROBLOX 0x0059aaf0
 void UngroupSelectionVerb::doIt(IDataState* dataState)
 {
 	FUN_00596660(dataModel);
@@ -644,7 +668,8 @@ void UngroupSelectionVerb::doIt(IDataState* dataState)
 	for (std::vector<ModelInstance*>::const_iterator iter = filteredSelection->begin();
 		 iter != filteredSelection->end();
 		 ++iter) {
-		models.push_back((*iter)->shared_from_this());
+		ModelInstance* model = *iter;
+		models.push_back(model->shared_from_this());
 	}
 
 	std::vector<Instance*> newSelection;
@@ -660,10 +685,38 @@ void UngroupSelectionVerb::doIt(IDataState* dataState)
 	dataState->setDirty(true);
 }
 
-// STUB: ROBLOX 0x0059ad50
+// FUNCTION: ROBLOX 0x0059ad50
 void RotateAxisCommand::doIt(IDataState* dataState)
 {
-	STUB(0x59ad50);
+	FUN_00596660(dataModel);
+
+	FilteredSelection<PVInstance>* filteredSelection =
+		dataModel ? dataModel->create<FilteredSelection<PVInstance> >() : NULL;
+
+	UndoState* undoState = new UndoState();
+
+	for (std::vector<PVInstance*>::const_iterator iter = filteredSelection->items().begin();
+		 iter != filteredSelection->items().end();
+		 ++iter) {
+		PVInstance* pvInstance = *iter;
+	}
+
+	FUN_00598da0(getRotationAxis(), filteredSelection->items());
+
+	(dataModel ? dataModel->create<Soundscape::SoundService>() : NULL)->playSound(CLICK_SOUND);
+
+	workspace->raiseDrawChanged();
+
+	RedoState* redoState = new RedoState();
+
+	for (std::vector<PVInstance*>::const_iterator iter = filteredSelection->items().begin();
+		 iter != filteredSelection->items().end();
+		 ++iter) {
+		PVInstance* pvInstance = *iter;
+	}
+
+	dataState->pushState(getName(), undoState, redoState);
+	dataState->setDirty(true);
 }
 
 // FUNCTION: ROBLOX 0x0059af30
@@ -1104,15 +1157,20 @@ void DeleteBase::doIt(IDataState* dataState)
 	}
 }
 
-// STUB: ROBLOX 0x0059c860
+// FUNCTION: ROBLOX 0x0059c860
 bool AttachCameraCommand::isEnabled() const
 {
 	if (selection->size() == 0) {
 		return false;
 	}
 
-	ServiceClient<FilteredSelection<PVInstance> > filteredSelection(dataModel);
-	return filteredSelection->items().size() == 1;
+	bool result;
+	{
+		ServiceClient<FilteredSelection<PVInstance> > filteredSelection(dataModel);
+		result = filteredSelection->items().size() == 1;
+	}
+
+	return result ? true : false;
 }
 
 // FUNCTION: ROBLOX 0x0059c950

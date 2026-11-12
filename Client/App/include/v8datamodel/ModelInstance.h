@@ -81,6 +81,7 @@ public:
 	void setPrimaryPart(PartInstance* value);
 
 	// FUNCTION: WEBSERVICE 0x10059bd0
+	// FUNCTION: ROBLOX 0x00564ad0
 	const CoordinateFrame& getModelInPrimary() const { return modelInPrimary; }
 	// FUNCTION: WEBSERVICE 0x10059be0
 	// FUNCTION: ROBLOX 0x00564ae0

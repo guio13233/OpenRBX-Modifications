@@ -350,6 +350,7 @@ set(OPENRBX_RBXVIEWNEW_SOURCES
 set(OPENRBX_RENDERLIBNEW_SOURCES
   Client/Rendering/RenderLibNew/AggregatingSceneManager.cpp
   Client/Rendering/RenderLibNew/Chunk.cpp
+  Client/Rendering/RenderLibNew/Clusterer.cpp
   Client/Rendering/RenderLibNew/EffectSettings.cpp
   Client/Rendering/RenderLibNew/Material.cpp
   Client/Rendering/RenderLibNew/Mesh.cpp
@@ -381,6 +382,7 @@ set(OPENRBX_APPDRAW_CLIENT_SOURCES
   Client/Rendering/AppDraw/RbxSky.cpp
   Client/Rendering/AppDraw/RbxSubEntity.cpp
   Client/Rendering/AppDraw/TwoDManager.cpp
+  Client/Rendering/AppDraw/Unknown0067eb00.cpp
   Client/Rendering/AppDraw/VisualEngine.cpp
 )
 
@@ -680,11 +682,14 @@ if (MSVC_FOR_DECOMP)
   add_executable(roblox WIN32
     Client/win/AboutRobloxDialog.cpp
     Client/win/App.cpp
+    Client/win/Unknown00409ef0.cpp
     Client/win/BrowserView.cpp
     Client/win/ChatPrompt.cpp
     Client/win/ChildFrm.cpp
+    Client/win/ClipboardVerbs.cpp
     Client/win/DHTMLWindow.cpp
     Client/win/DxUserInput.cpp
+    Client/win/UserInputUtil.cpp
     Client/win/ErrorUploader.cpp
     Client/win/InsertObjectDialog.cpp
     Client/win/InstanceExplorer.cpp
