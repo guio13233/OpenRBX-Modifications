@@ -85,6 +85,11 @@ public:
 	};
 
 protected:
+	struct lightsForShadowTextureLess
+	{
+		bool operator()(const Light* l1, const Light* l2) const;
+	};
+
 	bool m_unk0x8a64;                                                // 0x8a64
 	bool m_unk0x8a65;                                                // 0x8a65
 	String m_unk0x8a68;                                              // 0x8a68
@@ -114,6 +119,10 @@ protected:
 	void fireShadowTexturesUpdated(size_t numberOfShadowTextures);
 	void fireShadowTexturesPreCaster(Light* light, Camera* camera);
 	void fireShadowTexturesPreReceiver(Light* light, Frustum* f);
+	void useRenderableViewProjMode(const Renderable* pRend);
+	void resetViewProjMode(void);
+	const Pass* deriveShadowCasterPass(const Pass* pass);
+	const Pass* deriveShadowReceiverPass(const Pass* pass);
 	void renderShadowVolumeObjects(
 		ShadowCaster::ShadowRenderableListIterator iShadowRenderables,
 		Pass* pass,
@@ -158,6 +167,7 @@ public:
 	virtual void destroyAllLights(void);
 	virtual void _notifyLightsDirty(void);
 	virtual const LightList& _getLightsAffectingFrustum(void) const;
+	virtual Entity* createEntity(const String& entityName, PrefabType ptype);
 	virtual bool hasSceneNode(const String& name) const;
 	virtual Entity* getEntity(const String& name) const;
 	virtual bool hasEntity(const String& name) const;
@@ -236,6 +246,13 @@ public:
 	virtual void showBoundingBoxes(bool bShow);
 	virtual bool getShowBoundingBoxes() const;
 	virtual void _notifyAutotrackingSceneNode(SceneNode* node, bool autoTrack);
+	virtual AxisAlignedBoxSceneQuery* createAABBQuery(const AxisAlignedBox& box, unsigned long mask = 0xFFFFFFFF);
+	virtual SphereSceneQuery* createSphereQuery(const Sphere& sphere, unsigned long mask = 0xFFFFFFFF);
+	virtual PlaneBoundedVolumeListSceneQuery* createPlaneBoundedVolumeQuery(
+		const PlaneBoundedVolumeList& volumes, unsigned long mask = 0xFFFFFFFF
+	);
+	virtual RaySceneQuery* createRayQuery(const Ray& ray, unsigned long mask = 0xFFFFFFFF);
+	virtual IntersectionSceneQuery* createIntersectionQuery(unsigned long mask = 0xFFFFFFFF);
 	virtual void destroyQuery(SceneQuery* query);
 	// FUNCTION: ROBLOX 0x00688520
 	virtual ShadowTechnique getShadowTechnique(void) const { return mShadowTechnique; }
@@ -446,6 +463,7 @@ public:
 	virtual void setShadowTextureConfig(size_t shadowIndex, const ShadowTextureConfig& config);
 	virtual void setShadowTexturePixelFormat(PixelFormat fmt);
 	virtual void setShadowTextureCount(size_t count);
+	size_t getShadowTextureCount(void) const { return mShadowTextureConfigList.size(); }
 	virtual void setShadowTextureSettings(unsigned short size, unsigned short count, PixelFormat fmt = PF_X8R8G8B8);
 	virtual const TexturePtr& getShadowTexture(size_t shadowIndex);
 	virtual void setShadowTextureCasterMaterial(const String& name);
@@ -468,6 +486,7 @@ public:
 	virtual MovableObject* getMovableObject(const String& name, const String& typeName) const;
 	virtual bool hasMovableObject(const String& name, const String& typeName) const;
 	virtual void extractMovableObject(const String& name, const String& typeName);
+	virtual MovableObjectIterator getMovableObjectIterator(const String& typeName);
 	virtual const Pass* _setPass(const Pass* pass, bool evenIfSuppressed = false, bool shadowDerivation = true);
 	virtual void _renderQueueGroupObjects(RenderQueueGroup* group, QueuedRenderableCollection::OrganisationMode om);
 

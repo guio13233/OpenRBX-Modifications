@@ -137,6 +137,25 @@ const LightList& RbxSceneManager::_getLightsAffectingFrustum(void) const
 	return mLightsAffectingFrustum;
 }
 
+// FUNCTION: ROBLOX 0x00685870
+Entity* RbxSceneManager::createEntity(const String& entityName, PrefabType ptype)
+{
+	switch (ptype) {
+	case PT_PLANE:
+		return createEntity(entityName, "Prefab_Plane");
+	case PT_CUBE:
+		return createEntity(entityName, "Prefab_Cube");
+	case PT_SPHERE:
+		return createEntity(entityName, "Prefab_Sphere");
+	}
+
+#line 435
+	OGRE_EXCEPT(
+		Exception::ERR_ITEM_NOT_FOUND, "Unknown prefab type for entity " + entityName, "RbxSceneManager::createEntity"
+	);
+#line 157
+}
+
 // FUNCTION: ROBLOX 0x00685a10
 Entity* RbxSceneManager::getEntity(const String& name) const
 {
@@ -324,26 +343,30 @@ void RbxSceneManager::destroyAllParticleSystems(void)
 	destroyAllMovableObjectsByType(ParticleSystemFactory::FACTORY_TYPE_NAME);
 }
 
-// STUB: ROBLOX 0x00685d50
+// FUNCTION: ROBLOX 0x00685d50
 void RbxSceneManager::setWorldGeometry(const String& filename)
 {
 
+#line 1302
 	OGRE_EXCEPT(
 		Exception::ERR_INVALIDPARAMS,
 		"World geometry is not supported by the generic SceneManager.",
 		"RbxSceneManager::setWorldGeometry"
 	);
+#line 357
 }
 
-// STUB: ROBLOX 0x00685df0
+// FUNCTION: ROBLOX 0x00685df0
 void RbxSceneManager::setWorldGeometry(DataStreamPtr& stream, const String& typeName)
 {
 
+#line 1311
 	OGRE_EXCEPT(
 		Exception::ERR_INVALIDPARAMS,
 		"World geometry is not supported by the generic SceneManager.",
 		"RbxSceneManager::setWorldGeometry"
 	);
+#line 370
 }
 
 // FUNCTION: ROBLOX 0x00685e90
@@ -566,7 +589,7 @@ void RbxSceneManager::destroyAllAnimationStates(void)
 	mAnimationStates.removeAllAnimationStates();
 }
 
-// STUB: ROBLOX 0x00686310
+// FUNCTION: ROBLOX 0x00686310
 void RbxSceneManager::manualRender(
 	RenderOperation* rend,
 	Pass* pass,
@@ -588,27 +611,48 @@ void RbxSceneManager::manualRender(
 
 	_setPass(pass);
 
-	if (pass->isProgrammable()) {
-		mAutoParamDataSource.setCurrentViewport(vp);
-		mAutoParamDataSource.setCurrentRenderTarget(vp->getTarget());
-		mAutoParamDataSource.setCurrentSceneManager(this);
-		mAutoParamDataSource.setWorldMatrices(&worldMatrix, 1);
-		Camera dummyCam(StringUtil::BLANK, 0);
-		dummyCam.setCustomViewMatrix(true, viewMatrix);
-		dummyCam.setCustomProjectionMatrix(true, projMatrix);
-		pass->_updateAutoParamsNoLights(mAutoParamDataSource);
-
-		if (pass->hasVertexProgram()) {
-			mDestRenderSystem->bindGpuProgramParameters(GPT_VERTEX_PROGRAM, pass->getVertexProgramParameters());
-		}
-		if (pass->hasFragmentProgram()) {
-			mDestRenderSystem->bindGpuProgramParameters(GPT_FRAGMENT_PROGRAM, pass->getFragmentProgramParameters());
-		}
-	}
 	mDestRenderSystem->_render(*rend);
 
 	if (doBeginEndFrame) {
 		mDestRenderSystem->_endFrame();
+	}
+}
+
+// FUNCTION: ROBLOX 0x006863b0
+void RbxSceneManager::useRenderableViewProjMode(const Renderable* pRend)
+{
+
+	bool useIdentityView = pRend->getUseIdentityView();
+	if (useIdentityView) {
+
+		mDestRenderSystem->_setViewMatrix(Matrix4::IDENTITY);
+		mResetIdentityView = true;
+	}
+
+	bool useIdentityProj = pRend->getUseIdentityProjection();
+	if (useIdentityProj) {
+
+		Matrix4 mat;
+		mDestRenderSystem->_convertProjectionMatrix(Matrix4::IDENTITY, mat);
+		mDestRenderSystem->_setProjectionMatrix(mat);
+
+		mResetIdentityProj = true;
+	}
+}
+
+// FUNCTION: ROBLOX 0x00686420
+void RbxSceneManager::resetViewProjMode(void)
+{
+	if (mResetIdentityView) {
+
+		mDestRenderSystem->_setViewMatrix(mCameraInProgress->getViewMatrix(true));
+		mResetIdentityView = false;
+	}
+
+	if (mResetIdentityProj) {
+
+		mDestRenderSystem->_setProjectionMatrix(mCameraInProgress->getProjectionMatrixRS());
+		mResetIdentityProj = false;
 	}
 }
 
@@ -709,6 +753,20 @@ void RbxSceneManager::updateRenderQueueGroupSplitOptions(
 void RbxSceneManager::_notifyLightsDirty(void)
 {
 	++mLightsDirtyCounter;
+}
+
+// FUNCTION: ROBLOX 0x006866a0
+bool RbxSceneManager::lightsForShadowTextureLess::operator()(const Ogre::Light* l1, const Ogre::Light* l2) const
+{
+	if (l1 == l2) {
+		return false;
+	}
+
+	if (l1->getCastShadows() != l2->getCastShadows()) {
+		return l1->getCastShadows();
+	}
+
+	return l1->tempSquareDist < l2->tempSquareDist;
 }
 
 // FUNCTION: ROBLOX 0x00686710
@@ -828,6 +886,53 @@ void RbxSceneManager::destroyInstancedGeometry(InstancedGeometry* geom)
 	destroyInstancedGeometry(geom->getName());
 }
 
+// FUNCTION: ROBLOX 0x00686a00
+AxisAlignedBoxSceneQuery* RbxSceneManager::createAABBQuery(const AxisAlignedBox& box, unsigned long mask)
+{
+	DefaultAxisAlignedBoxSceneQuery* q = new DefaultAxisAlignedBoxSceneQuery(this);
+	q->setBox(box);
+	q->setQueryMask(mask);
+	return q;
+}
+
+// FUNCTION: ROBLOX 0x00686ac0
+SphereSceneQuery* RbxSceneManager::createSphereQuery(const Sphere& sphere, unsigned long mask)
+{
+	DefaultSphereSceneQuery* q = new DefaultSphereSceneQuery(this);
+	q->setSphere(sphere);
+	q->setQueryMask(mask);
+	return q;
+}
+
+// FUNCTION: ROBLOX 0x00686b80
+PlaneBoundedVolumeListSceneQuery* RbxSceneManager::createPlaneBoundedVolumeQuery(
+	const PlaneBoundedVolumeList& volumes, unsigned long mask
+)
+{
+	DefaultPlaneBoundedVolumeListSceneQuery* q = new DefaultPlaneBoundedVolumeListSceneQuery(this);
+	q->setVolumes(volumes);
+	q->setQueryMask(mask);
+	return q;
+}
+
+// FUNCTION: ROBLOX 0x00686c40
+RaySceneQuery* RbxSceneManager::createRayQuery(const Ray& ray, unsigned long mask)
+{
+	DefaultRaySceneQuery* q = new DefaultRaySceneQuery(this);
+	q->setRay(ray);
+	q->setQueryMask(mask);
+	return q;
+}
+
+// FUNCTION: ROBLOX 0x00686d00
+IntersectionSceneQuery* RbxSceneManager::createIntersectionQuery(unsigned long mask)
+{
+
+	DefaultIntersectionSceneQuery* q = new DefaultIntersectionSceneQuery(this);
+	q->setQueryMask(mask);
+	return q;
+}
+
 // STUB: ROBLOX 0x00686db0
 void RbxSceneManager::destroyQuery(SceneQuery* query)
 {
@@ -917,7 +1022,7 @@ ViewPoint RbxSceneManager::getSuggestedViewpoint(bool random)
 	return vp;
 }
 
-// STUB: ROBLOX 0x006874a0
+// FUNCTION: ROBLOX 0x006874a0
 void RbxSceneManager::_queueSkiesForRendering(Camera* cam)
 {
 
@@ -935,7 +1040,7 @@ void RbxSceneManager::_queueSkiesForRendering(Camera* cam)
 		mSkyDomeNode->setPosition(cam->getDerivedPosition());
 	}
 
-	uint8 qid;
+	RenderQueueGroupID qid;
 	if (mSkyPlaneEnabled) {
 		qid = mSkyPlaneDrawFirst ? RENDER_QUEUE_SKIES_EARLY : RENDER_QUEUE_SKIES_LATE;
 		getRenderQueue()->addRenderable(mSkyPlaneEntity->getSubEntity(0), qid, OGRE_RENDERABLE_DEFAULT_PRIORITY);
@@ -1005,24 +1110,28 @@ void RbxSceneManager::setShadowTechnique(ShadowTechnique technique)
 	}
 }
 
-// STUB: ROBLOX 0x00687800
+// FUNCTION: ROBLOX 0x00687800
 void RbxSceneManager::setShadowTextureConfig(size_t shadowIndex, const ShadowTextureConfig& config)
 {
 	if (shadowIndex >= mShadowTextureConfigList.size()) {
+#line 4716
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND, "shadowIndex out of bounds", "RbxSceneManager::setShadowTextureConfig"
 		);
+#line 1122
 	}
 	mShadowTextureConfigList[shadowIndex] = config;
 
 	mShadowTextureConfigDirty = true;
 }
 
-// STUB: ROBLOX 0x00687940
+// FUNCTION: ROBLOX 0x00687940
 const TexturePtr& RbxSceneManager::getShadowTexture(size_t shadowIndex)
 {
 	if (shadowIndex >= mShadowTextureConfigList.size()) {
+#line 4792
 		OGRE_EXCEPT(Exception::ERR_ITEM_NOT_FOUND, "shadowIndex out of bounds", "RbxSceneManager::getShadowTexture");
+#line 1135
 	}
 	ensureShadowTexturesCreated();
 
@@ -1036,7 +1145,7 @@ RbxSceneManager::RbxSceneManager(const String& name) : SceneManager(name)
 	mActiveQueuedRenderableVisitor = &mDefaultQueuedRenderableVisitor;
 }
 
-// STUB: ROBLOX 0x006886b0
+// FUNCTION: ROBLOX 0x006886b0
 void RbxSceneManager::setSkyPlane(
 	bool enable,
 	const Plane& plane,
@@ -1056,11 +1165,13 @@ void RbxSceneManager::setSkyPlane(
 
 		MaterialPtr m = MaterialManager::getSingleton().getByName(materialName);
 		if (m.isNull()) {
+#line 1336
 			OGRE_EXCEPT(
 				Exception::ERR_INVALIDPARAMS,
 				"Sky plane material '" + materialName + "' not found.",
 				"RbxSceneManager::setSkyPlane"
 			);
+#line 1175
 		}
 
 		m->setDepthWriteEnabled(false);
@@ -1290,13 +1401,231 @@ MeshPtr RbxSceneManager::createSkydomePlane(
 	return planeMesh;
 }
 
+// FUNCTION: ROBLOX 0x00689500
+const Pass* RbxSceneManager::deriveShadowCasterPass(const Pass* pass)
+{
+	if (isShadowTechniqueTextureBased()) {
+		Pass* retPass = mShadowTextureCustomCasterPass ? mShadowTextureCustomCasterPass : mShadowCasterPlainBlackPass;
+
+		if ((pass->getSourceBlendFactor() == SBF_SOURCE_ALPHA &&
+			 pass->getDestBlendFactor() == SBF_ONE_MINUS_SOURCE_ALPHA) ||
+			pass->getAlphaRejectFunction() != CMPF_ALWAYS_PASS) {
+
+			retPass->setAlphaRejectSettings(pass->getAlphaRejectFunction(), pass->getAlphaRejectValue());
+			retPass->setSceneBlending(pass->getSourceBlendFactor(), pass->getDestBlendFactor());
+			retPass->getParent()->getParent()->setTransparencyCastsShadows(true);
+
+			unsigned short origPassTUCount = pass->getNumTextureUnitStates();
+			for (unsigned short t = 0; t < origPassTUCount; ++t) {
+				TextureUnitState* tex;
+				if (retPass->getNumTextureUnitStates() <= t) {
+					tex = retPass->createTextureUnitState();
+				}
+				else {
+					tex = retPass->getTextureUnitState(t);
+				}
+
+				(*tex) = *(pass->getTextureUnitState(t));
+
+				tex->setColourOperationEx(
+					LBX_SOURCE1,
+					LBS_MANUAL,
+					LBS_CURRENT,
+					isShadowTechniqueAdditive() ? ColourValue::Black : mShadowColour
+				);
+			}
+
+			while (retPass->getNumTextureUnitStates() > origPassTUCount) {
+				retPass->removeTextureUnitState(origPassTUCount);
+			}
+		}
+		else {
+
+			retPass->setSceneBlending(SBT_REPLACE);
+			retPass->setAlphaRejectFunction(CMPF_ALWAYS_PASS);
+			while (retPass->getNumTextureUnitStates() > 0) {
+				retPass->removeTextureUnitState(0);
+			}
+		}
+
+		retPass->setCullingMode(pass->getCullingMode());
+		retPass->setManualCullingMode(pass->getManualCullingMode());
+
+		if (!pass->getShadowCasterVertexProgramName().empty()) {
+
+			retPass->setVertexProgram(pass->getShadowCasterVertexProgramName(), false);
+			const GpuProgramPtr& prg = retPass->getVertexProgram();
+
+			if (!prg->isLoaded()) {
+				prg->load();
+			}
+
+			retPass->setVertexProgramParameters(pass->getShadowCasterVertexProgramParameters());
+		}
+		else {
+			if (retPass == mShadowTextureCustomCasterPass) {
+
+				if (mShadowTextureCustomCasterPass->getVertexProgramName() != mShadowTextureCustomCasterVertexProgram) {
+					mShadowTextureCustomCasterPass->setVertexProgram(mShadowTextureCustomCasterVertexProgram, false);
+					if (mShadowTextureCustomCasterPass->hasVertexProgram()) {
+						mShadowTextureCustomCasterPass->setVertexProgramParameters(mShadowTextureCustomCasterVPParams);
+					}
+				}
+			}
+			else {
+
+				retPass->setVertexProgram(StringUtil::BLANK);
+			}
+		}
+		return retPass;
+	}
+	else {
+		return pass;
+	}
+}
+
+// FUNCTION: ROBLOX 0x006897c0
+const Pass* RbxSceneManager::deriveShadowReceiverPass(const Pass* pass)
+{
+
+	if (isShadowTechniqueTextureBased()) {
+		Pass* retPass = mShadowTextureCustomReceiverPass ? mShadowTextureCustomReceiverPass : mShadowReceiverPass;
+
+		if (!pass->getShadowReceiverVertexProgramName().empty()) {
+
+			retPass->setVertexProgram(pass->getShadowReceiverVertexProgramName(), false);
+			const GpuProgramPtr& prg = retPass->getVertexProgram();
+
+			if (!prg->isLoaded()) {
+				prg->load();
+			}
+
+			retPass->setVertexProgramParameters(pass->getShadowReceiverVertexProgramParameters());
+		}
+		else {
+			if (retPass == mShadowTextureCustomReceiverPass) {
+
+				if (mShadowTextureCustomReceiverPass->getVertexProgramName() !=
+					mShadowTextureCustomReceiverVertexProgram) {
+					mShadowTextureCustomReceiverPass->setVertexProgram(
+						mShadowTextureCustomReceiverVertexProgram, false
+					);
+					if (mShadowTextureCustomReceiverPass->hasVertexProgram()) {
+						mShadowTextureCustomReceiverPass->setVertexProgramParameters(
+							mShadowTextureCustomReceiverVPParams
+						);
+					}
+				}
+			}
+			else {
+
+				retPass->setVertexProgram(StringUtil::BLANK);
+			}
+		}
+
+		unsigned short keepTUCount;
+
+		if (isShadowTechniqueAdditive()) {
+			retPass->setLightingEnabled(true);
+			retPass->setAmbient(pass->getAmbient());
+			retPass->setSelfIllumination(pass->getSelfIllumination());
+			retPass->setDiffuse(pass->getDiffuse());
+			retPass->setSpecular(pass->getSpecular());
+			retPass->setShininess(pass->getShininess());
+			retPass->setIteratePerLight(
+				pass->getIteratePerLight(), pass->getRunOnlyForOneLightType(), pass->getOnlyLightType()
+			);
+
+			retPass->setAlphaRejectSettings(pass->getAlphaRejectFunction(), pass->getAlphaRejectValue());
+
+			unsigned short origPassTUCount = pass->getNumTextureUnitStates();
+			for (unsigned short t = 0; t < origPassTUCount; ++t) {
+				unsigned short targetIndex = t + 1;
+				TextureUnitState* tex;
+				if (retPass->getNumTextureUnitStates() <= targetIndex) {
+					tex = retPass->createTextureUnitState();
+				}
+				else {
+					tex = retPass->getTextureUnitState(targetIndex);
+				}
+				(*tex) = *(pass->getTextureUnitState(t));
+
+				if (retPass->hasVertexProgram()) {
+					tex->setTextureCoordSet(targetIndex);
+				}
+			}
+			keepTUCount = origPassTUCount + 1;
+		}
+		else {
+
+			keepTUCount = retPass->getNumTextureUnitStates();
+		}
+
+		if (!pass->getShadowReceiverFragmentProgramName().empty()) {
+
+			retPass->setFragmentProgram(pass->getShadowReceiverFragmentProgramName(), false);
+			const GpuProgramPtr& prg = retPass->getFragmentProgram();
+
+			if (!prg->isLoaded()) {
+				prg->load();
+			}
+
+			retPass->setFragmentProgramParameters(pass->getShadowReceiverFragmentProgramParameters());
+
+			if (pass->hasVertexProgram() && !retPass->hasVertexProgram()) {
+
+				retPass->setVertexProgram(pass->getVertexProgramName(), false);
+				const GpuProgramPtr& prg = retPass->getVertexProgram();
+
+				if (!prg->isLoaded()) {
+					prg->load();
+				}
+
+				retPass->setVertexProgramParameters(pass->getVertexProgramParameters());
+			}
+		}
+		else {
+
+			if (retPass == mShadowTextureCustomReceiverPass) {
+
+				if (mShadowTextureCustomReceiverPass->getFragmentProgramName() !=
+					mShadowTextureCustomReceiverFragmentProgram) {
+					mShadowTextureCustomReceiverPass->setFragmentProgram(
+						mShadowTextureCustomReceiverFragmentProgram, false
+					);
+					if (mShadowTextureCustomReceiverPass->hasFragmentProgram()) {
+						mShadowTextureCustomReceiverPass->setFragmentProgramParameters(
+							mShadowTextureCustomReceiverFPParams
+						);
+					}
+				}
+			}
+			else {
+
+				retPass->setFragmentProgram(StringUtil::BLANK);
+			}
+		}
+
+		while (retPass->getNumTextureUnitStates() > keepTUCount) {
+			retPass->removeTextureUnitState(keepTUCount);
+		}
+
+		retPass->_load();
+
+		return retPass;
+	}
+	else {
+		return pass;
+	}
+}
+
 // STUB: ROBLOX 0x00689b90
 SceneManager* RbxSceneManagerFactory::createInstance(const String& instanceName)
 {
 	return new RbxSceneManager(instanceName);
 }
 
-// STUB: ROBLOX 0x0068a2f0
+// FUNCTION: ROBLOX 0x0068a2f0
 void RbxSceneManager::setSkyDome(
 	bool enable,
 	const String& materialName,
@@ -1314,11 +1643,13 @@ void RbxSceneManager::setSkyDome(
 	if (enable) {
 		MaterialPtr m = MaterialManager::getSingleton().getByName(materialName);
 		if (m.isNull()) {
+#line 1532
 			OGRE_EXCEPT(
 				Exception::ERR_INVALIDPARAMS,
 				"Sky dome material '" + materialName + "' not found.",
 				"RbxSceneManager::setSkyDome"
 			);
+#line 1653
 		}
 
 		m->setDepthWriteEnabled(false);
@@ -1622,7 +1953,7 @@ void RbxSceneManager::setShadowTextureSettings(unsigned short size, unsigned sho
 	}
 }
 
-// STUB: ROBLOX 0x0068b960
+// FUNCTION: ROBLOX 0x0068b960
 void RbxSceneManager::setShadowTextureCasterMaterial(const String& name)
 {
 	if (name.empty()) {
@@ -1631,11 +1962,13 @@ void RbxSceneManager::setShadowTextureCasterMaterial(const String& name)
 	else {
 		MaterialPtr mat = MaterialManager::getSingleton().getByName(name);
 		if (mat.isNull()) {
+#line 4817
 			OGRE_EXCEPT(
 				Exception::ERR_ITEM_NOT_FOUND,
 				"Cannot locate material called '" + name + "'",
 				"RbxSceneManager::setShadowTextureCasterMaterial"
 			);
+#line 1972
 		}
 		mat->load();
 		mShadowTextureCustomCasterPass = mat->getBestTechnique()->getPass(0);
@@ -1647,7 +1980,7 @@ void RbxSceneManager::setShadowTextureCasterMaterial(const String& name)
 	}
 }
 
-// STUB: ROBLOX 0x0068bb70
+// FUNCTION: ROBLOX 0x0068bb70
 void RbxSceneManager::setShadowTextureReceiverMaterial(const String& name)
 {
 	if (name.empty()) {
@@ -1656,11 +1989,13 @@ void RbxSceneManager::setShadowTextureReceiverMaterial(const String& name)
 	else {
 		MaterialPtr mat = MaterialManager::getSingleton().getByName(name);
 		if (mat.isNull()) {
+#line 4846
 			OGRE_EXCEPT(
 				Exception::ERR_ITEM_NOT_FOUND,
 				"Cannot locate material called '" + name + "'",
 				"RbxSceneManager::setShadowTextureReceiverMaterial"
 			);
+#line 1999
 		}
 		mat->load();
 		mShadowTextureCustomReceiverPass = mat->getBestTechnique()->getPass(0);
@@ -1689,14 +2024,16 @@ void RbxSceneManager::clearSpecialCaseRenderQueues(void)
 	mSpecialCaseQueueList.clear();
 }
 
-// STUB: ROBLOX 0x0068cee0
+// FUNCTION: ROBLOX 0x0068cee0
 Camera* RbxSceneManager::getCamera(const String& name) const
 {
 	CameraList::const_iterator i = mCameras.find(name);
 	if (i == mCameras.end()) {
+#line 250
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND, "Cannot find Camera with name " + name, "RbxSceneManager::getCamera"
 		);
+#line 2037
 	}
 	else {
 		return i->second;
@@ -1709,15 +2046,17 @@ bool RbxSceneManager::hasCamera(const String& name) const
 	return (mCameras.find(name) != mCameras.end());
 }
 
-// STUB: ROBLOX 0x0068d020
+// FUNCTION: ROBLOX 0x0068d020
 SceneNode* RbxSceneManager::getSceneNode(const String& name) const
 {
 	SceneNodeList::const_iterator i = mSceneNodes.find(name);
 
 	if (i == mSceneNodes.end()) {
+#line 754
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND, "SceneNode '" + name + "' not found.", "RbxSceneManager::getSceneNode"
 		);
+#line 2060
 	}
 
 	return i->second;
@@ -1746,11 +2085,13 @@ void RbxSceneManager::setSkyBox(
 
 		MaterialPtr m = MaterialManager::getSingleton().getByName(materialName);
 		if (m.isNull()) {
+#line 1426
 			OGRE_EXCEPT(
 				Exception::ERR_INVALIDPARAMS,
 				"Sky box material '" + materialName + "' not found.",
 				"RbxSceneManager::setSkyBox"
 			);
+#line 2095
 		}
 
 		m->setDepthWriteEnabled(false);
@@ -1852,16 +2193,18 @@ void RbxSceneManager::renderVisibleObjectsCustomSequence(RenderQueueInvocationSe
 	}
 }
 
-// STUB: ROBLOX 0x0068d900
+// FUNCTION: ROBLOX 0x0068d900
 Animation* RbxSceneManager::getAnimation(const String& name) const
 {
 	OGRE_LOCK_MUTEX(mAnimationsListMutex)
 
 	AnimationList::const_iterator i = mAnimationsList.find(name);
 	if (i == mAnimationsList.end()) {
+#line 3006
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND, "Cannot find animation with name " + name, "RbxSceneManager::getAnimation"
 		);
+#line 2208
 	}
 	return i->second;
 }
@@ -2027,16 +2370,18 @@ void RbxSceneManager::prepareShadowTextures(Camera* cam, Viewport* vp)
 	ShadowTextureManager::getSingleton().clearUnused();
 }
 
-// STUB: ROBLOX 0x0068e110
+// FUNCTION: ROBLOX 0x0068e110
 StaticGeometry* RbxSceneManager::getStaticGeometry(const String& name) const
 {
 	StaticGeometryList::const_iterator i = mStaticGeometryList.find(name);
 	if (i == mStaticGeometryList.end()) {
+#line 5133
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND,
 			"StaticGeometry with name '" + name + "' not found",
 			"RbxSceneManager::createStaticGeometry"
 		);
+#line 2385
 	}
 	return i->second;
 }
@@ -2047,37 +2392,41 @@ bool RbxSceneManager::hasStaticGeometry(const String& name) const
 	return (mStaticGeometryList.find(name) != mStaticGeometryList.end());
 }
 
-// STUB: ROBLOX 0x0068e270
+// FUNCTION: ROBLOX 0x0068e270
 InstancedGeometry* RbxSceneManager::getInstancedGeometry(const String& name) const
 {
 	InstancedGeometryList::const_iterator i = mInstancedGeometryList.find(name);
 	if (i == mInstancedGeometryList.end()) {
+#line 5192
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND,
 			"InstancedGeometry with name '" + name + "' not found",
 			"RbxSceneManager::createInstancedGeometry"
 		);
+#line 2407
 	}
 	return i->second;
 }
 
-// STUB: ROBLOX 0x0068e390
+// FUNCTION: ROBLOX 0x0068e390
 const SceneManager::MovableObjectCollection* RbxSceneManager::getMovableObjectCollection(const String& typeName) const
 {
 	MovableObjectCollectionMap::const_iterator i = mMovableObjectCollectionMap.find(typeName);
 	if (i == mMovableObjectCollectionMap.end()) {
+#line 5309
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND,
 			"Object collection named '" + typeName + "' does not exist.",
 			"RbxSceneManager::getMovableObjectCollection"
 		);
+#line 2423
 	}
 	else {
 		return i->second;
 	}
 }
 
-// STUB: ROBLOX 0x0068e4c0
+// FUNCTION: ROBLOX 0x0068e4c0
 MovableObject* RbxSceneManager::getMovableObject(const String& name, const String& typeName) const
 {
 	const MovableObjectCollection* objectMap = getMovableObjectCollection(typeName);
@@ -2086,11 +2435,13 @@ MovableObject* RbxSceneManager::getMovableObject(const String& name, const Strin
 		OGRE_LOCK_MUTEX(objectMap->mutex)
 		MovableObjectMap::const_iterator mi = objectMap->map.find(name);
 		if (mi == objectMap->map.end()) {
+#line 5426
 			OGRE_EXCEPT(
 				Exception::ERR_ITEM_NOT_FOUND,
 				"Object named '" + name + "' does not exist.",
 				"RbxSceneManager::getMovableObject"
 			);
+#line 2445
 		}
 		return mi->second;
 	}
@@ -2148,15 +2499,17 @@ void RbxSceneManager::destroyCamera(const String& name)
 	}
 }
 
-// STUB: ROBLOX 0x0068f7d0
+// FUNCTION: ROBLOX 0x0068f7d0
 void RbxSceneManager::destroySceneNode(const String& name)
 {
 	SceneNodeList::iterator i = mSceneNodes.find(name);
 
 	if (i == mSceneNodes.end()) {
+#line 707
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND, "SceneNode '" + name + "' not found.", "RbxSceneManager::destroySceneNode"
 		);
+#line 2513
 	}
 
 	AutoTrackingSceneNodes::iterator ai, aiend;
@@ -2184,10 +2537,12 @@ void RbxSceneManager::destroySceneNode(const String& name)
 	mSceneNodes.erase(i);
 }
 
-// STUB: ROBLOX 0x0068fa40
+// FUNCTION: ROBLOX 0x0068fa40
 const Pass* RbxSceneManager::_setPass(const Pass* pass, bool evenIfSuppressed, bool shadowDerivation)
 {
 	if (!mSuppressRenderStateChanges || evenIfSuppressed) {
+		m_unk0x8a64 = pass->getLightingEnabled() ? true : false;
+
 		if (mIlluminationStage == IRS_RENDER_TO_TEXTURE && shadowDerivation) {
 
 			pass = deriveShadowCasterPass(pass);
@@ -2719,26 +3074,33 @@ void RbxSceneManager::renderTextureShadowReceiverQueueGroupObjects(
 	mDestRenderSystem->setAmbientLight(mAmbientLight.r, mAmbientLight.g, mAmbientLight.b);
 }
 
-// STUB: ROBLOX 0x00691260
+// FUNCTION: ROBLOX 0x00691260
 void RbxSceneManager::renderBasicQueueGroupObjects(
 	RenderQueueGroup* pGroup, QueuedRenderableCollection::OrganisationMode om
 )
 {
 
 	RenderQueueGroup::PriorityMapIterator groupIt = pGroup->getIterator();
+	Timer timer;
 
 	while (groupIt.hasMoreElements()) {
 		RenderPriorityGroup* pPriorityGrp = groupIt.getNext();
 
+		timer.reset();
 		pPriorityGrp->sort(mCameraInProgress);
+		timer.getMicroseconds();
 
+		timer.reset();
 		renderObjects(pPriorityGrp->getSolidsBasic(), om, true);
+		timer.getMicroseconds();
 
+		timer.reset();
 		renderObjects(pPriorityGrp->getTransparents(), QueuedRenderableCollection::OM_SORT_DESCENDING, true);
+		timer.getMicroseconds();
 	}
 }
 
-// STUB: ROBLOX 0x006913a0
+// FUNCTION: ROBLOX 0x006913a0
 void RbxSceneManager::destroyAnimation(const String& name)
 {
 	OGRE_LOCK_MUTEX(mAnimationsListMutex)
@@ -2747,9 +3109,11 @@ void RbxSceneManager::destroyAnimation(const String& name)
 
 	AnimationList::iterator i = mAnimationsList.find(name);
 	if (i == mAnimationsList.end()) {
+#line 3029
 		OGRE_EXCEPT(
 			Exception::ERR_ITEM_NOT_FOUND, "Cannot find animation with name " + name, "RbxSceneManager::getAnimation"
 		);
+#line 3117
 	}
 
 	delete i->second;
@@ -2757,7 +3121,7 @@ void RbxSceneManager::destroyAnimation(const String& name)
 	mAnimationsList.erase(i);
 }
 
-// STUB: ROBLOX 0x006914d0
+// FUNCTION: ROBLOX 0x006914d0
 void RbxSceneManager::_applySceneAnimations(void)
 {
 
@@ -2772,17 +3136,13 @@ void RbxSceneManager::_applySceneAnimations(void)
 		Animation::NodeTrackIterator nodeTrackIt = anim->getNodeTrackIterator();
 		while (nodeTrackIt.hasMoreElements()) {
 			Node* nd = nodeTrackIt.getNext()->getAssociatedNode();
-			if (nd) {
-				nd->resetToInitialState();
-			}
+			nd->resetToInitialState();
 		}
 
 		Animation::NumericTrackIterator numTrackIt = anim->getNumericTrackIterator();
 		while (numTrackIt.hasMoreElements()) {
 			const AnimableValuePtr& anim = numTrackIt.getNext()->getAssociatedAnimable();
-			if (!anim.isNull()) {
-				anim->resetToBaseValue();
-			}
+			anim->resetToBaseValue();
 		}
 
 		anim->apply(state->getTimePosition(), state->getWeight());
@@ -2968,16 +3328,18 @@ void RbxSceneManager::destroyAllMovableObjects(void)
 	}
 }
 
-// STUB: ROBLOX 0x00693ac0
+// FUNCTION: ROBLOX 0x00693ac0
 Camera* RbxSceneManager::createCamera(const String& name)
 {
 
 	if (mCameras.find(name) != mCameras.end()) {
+#line 228
 		OGRE_EXCEPT(
 			Exception::ERR_DUPLICATE_ITEM,
 			"A camera with the name " + name + " already exists",
 			"RbxSceneManager::createCamera"
 		);
+#line 3343
 	}
 
 	Camera* c = new Camera(name, this);
@@ -2997,16 +3359,18 @@ SceneNode* RbxSceneManager::createSceneNode(void)
 	return sn;
 }
 
-// STUB: ROBLOX 0x00693dd0
+// FUNCTION: ROBLOX 0x00693dd0
 SceneNode* RbxSceneManager::createSceneNode(const String& name)
 {
 
 	if (mSceneNodes.find(name) != mSceneNodes.end()) {
+#line 690
 		OGRE_EXCEPT(
 			Exception::ERR_DUPLICATE_ITEM,
 			"A scene node with the name " + name + " already exists",
 			"RbxSceneManager::createSceneNode"
 		);
+#line 3374
 	}
 
 	SceneNode* sn = new SceneNode(this, name);
@@ -3098,17 +3462,19 @@ void RbxSceneManager::renderVisibleObjectsDefaultSequence(void)
 	}
 }
 
-// STUB: ROBLOX 0x00694230
+// FUNCTION: ROBLOX 0x00694230
 Animation* RbxSceneManager::createAnimation(const String& name, Real length)
 {
 	OGRE_LOCK_MUTEX(mAnimationsListMutex)
 
 	if (mAnimationsList.find(name) != mAnimationsList.end()) {
+#line 2987
 		OGRE_EXCEPT(
 			Exception::ERR_DUPLICATE_ITEM,
 			"An animation with the name " + name + " already exists",
 			"RbxSceneManager::createAnimation"
 		);
+#line 3478
 	}
 
 	Animation* pAnim = new Animation(name, length);
@@ -3145,32 +3511,36 @@ void RbxSceneManager::destroyShadowTextures(void)
 	mShadowTextureConfigDirty = true;
 }
 
-// STUB: ROBLOX 0x00694680
+// FUNCTION: ROBLOX 0x00694680
 StaticGeometry* RbxSceneManager::createStaticGeometry(const String& name)
 {
 
 	if (mStaticGeometryList.find(name) != mStaticGeometryList.end()) {
+#line 5119
 		OGRE_EXCEPT(
 			Exception::ERR_DUPLICATE_ITEM,
 			"StaticGeometry with name '" + name + "' already exists!",
 			"RbxSceneManager::createStaticGeometry"
 		);
+#line 3526
 	}
 	StaticGeometry* ret = new StaticGeometry(this, name);
 	mStaticGeometryList[name] = ret;
 	return ret;
 }
 
-// STUB: ROBLOX 0x00694800
+// FUNCTION: ROBLOX 0x00694800
 InstancedGeometry* RbxSceneManager::createInstancedGeometry(const String& name)
 {
 
 	if (mInstancedGeometryList.find(name) != mInstancedGeometryList.end()) {
+#line 5178
 		OGRE_EXCEPT(
 			Exception::ERR_DUPLICATE_ITEM,
 			"InstancedGeometry with name '" + name + "' already exists!",
 			"RbxSceneManager::createInstancedGeometry"
 		);
+#line 3544
 	}
 	InstancedGeometry* ret = new InstancedGeometry(this, name);
 	mInstancedGeometryList[name] = ret;
@@ -3889,7 +4259,7 @@ SceneManager::MovableObjectCollection* RbxSceneManager::getMovableObjectCollecti
 	}
 }
 
-// STUB: ROBLOX 0x00697750
+// FUNCTION: ROBLOX 0x00697750
 MovableObject* RbxSceneManager::createMovableObject(
 	const String& name, const String& typeName, const NameValuePairList* params
 )
@@ -3902,11 +4272,13 @@ MovableObject* RbxSceneManager::createMovableObject(
 		OGRE_LOCK_MUTEX(objectMap->mutex)
 
 		if (objectMap->map.find(name) != objectMap->map.end()) {
+#line 5333
 			OGRE_EXCEPT(
 				Exception::ERR_DUPLICATE_ITEM,
 				"An object of type '" + typeName + "' with name '" + name + "' already exists.",
 				"RbxSceneManager::createMovableObject"
 			);
+#line 4282
 		}
 
 		MovableObject* newObj = factory->createInstance(name, this, params);
@@ -3949,6 +4321,13 @@ void RbxSceneManager::destroyAllMovableObjectsByType(const String& typeName)
 		}
 		objectMap->map.clear();
 	}
+}
+
+// FUNCTION: ROBLOX 0x00697a60
+SceneManager::MovableObjectIterator RbxSceneManager::getMovableObjectIterator(const String& typeName)
+{
+	MovableObjectCollection* objectMap = getMovableObjectCollection(typeName);
+	return MovableObjectIterator(objectMap->map.begin(), objectMap->map.end());
 }
 
 // FUNCTION: ROBLOX 0x00697a90
@@ -4003,7 +4382,7 @@ RbxSceneManager::~RbxSceneManager()
 	delete mShadowCasterQueryListener;
 }
 
-// STUB: ROBLOX 0x00697d00
+// FUNCTION: ROBLOX 0x00697d00
 void RbxSceneManager::_populateLightList(const Vector3& position, Real radius, LightList& destList)
 {
 
